@@ -2,6 +2,9 @@ import pyxel
 
 import js
 
+WINDOW_W = 400
+WINDOW_H = 400
+
 class Hand:
     POINT_SIZE = 7
     POINT_COLOR = 7
@@ -13,11 +16,11 @@ class Hand:
 
     def draw(self):
         for point in self.points:
-            pyxel.circ(400 - point[0] * 400, point[1] * 400, self.POINT_SIZE, self.POINT_COLOR)
+            pyxel.circ(WINDOW_W - point[0] * WINDOW_W, point[1] * WINDOW_H, self.POINT_SIZE, self.POINT_COLOR)
 
 class App:
     def __init__(self):
-        pyxel.init(400, 400)
+        pyxel.init(WINDOW_W, WINDOW_H)
         self.hands = []
         pyxel.run(self.update, self.draw)
 
