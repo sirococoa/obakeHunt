@@ -77,9 +77,7 @@ async function predictWebcam() {
         results = handLandmarker.detectForVideo(video, startTimeMs);
     }
     if (results.landmarks) {
-        for (const l of results.landmarks) {
-            landmarks = l
-        }
+        landmarks = results.landmarks
     }
 
     if (webcamRunning === true) {
