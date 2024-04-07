@@ -23,10 +23,13 @@ let handLandmarker = undefined;
 let runningMode = "IMAGE";
 let webcamRunning = false;
 
-let landmarks = new Array()
+window.videoWidth = 0;
+window.videoHeight = 0;
+
+let landmarks = new Array();
 
 window.getLandmarks = function() {
-    return landmarks
+    return landmarks;
 }
 
 const createHandLandmarker = async () => {
@@ -50,7 +53,16 @@ const hasGetUserMedia = () => !!navigator.mediaDevices?.getUserMedia;
 
 if (hasGetUserMedia()) {
     const constraints = {
-        video: true
+        video: {
+            width: {
+              min: 1280,
+              max: 1920,
+            },
+            height: {
+              min: 720,
+              max: 1080,
+            },
+        }
     };
 
     navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
@@ -58,7 +70,7 @@ if (hasGetUserMedia()) {
         video.addEventListener("loadeddata", predictWebcam);
     });
 
-    webcamRunning = true
+    webcamRunning = true;
 } else {
     console.warn("getUserMedia() is not supported by your browser");
 }
@@ -71,13 +83,17 @@ async function predictWebcam() {
         runningMode = "VIDEO";
         await handLandmarker.setOptions({ runningMode: "VIDEO" });
     }
+
+    window.videoWidth = video.videoWidth;
+    window.videoHeight = video.videoHeight;
+
     let startTimeMs = performance.now();
     if (lastVideoTime !== video.currentTime) {
         lastVideoTime = video.currentTime;
         results = handLandmarker.detectForVideo(video, startTimeMs);
     }
     if (results.landmarks) {
-        landmarks = results.landmarks
+        landmarks = results.landmarks;
     }
 
     if (webcamRunning === true) {
