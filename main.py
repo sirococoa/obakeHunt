@@ -3,6 +3,8 @@ import time
 import pyxel
 
 import js
+import numpy
+from scipy.spatial import distance
 
 WINDOW_W = 400
 WINDOW_H = 400
@@ -11,24 +13,47 @@ class Hand:
     POINT_SIZE = 7
     POINT_COLOR = 7
 
-    def __init__(self, landmarks, aspect):
+    TARGET_SIZE = 3
+    TARGET_COLOR = 8
+
+    def __init__(self, landmarks, aspect, senshi):
         self.points = []
         for landmark in landmarks:
-            self.points.append((landmark["x"], landmark["y"], landmark["z"]))
-        
-        self.aspect = aspect
+            x, y, z = landmark["x"], landmark["y"], landmark["z"]
+            if aspect < 1:
+                self.points.append(numpy.asarray((x, 0.5 - (y - 0.5) / aspect, z)))
+            else:
+                self.points.append(numpy.asarray((0.5 - (x - 0.5) * aspect, y, z)))
+
+        self.target = self.calc_target(senshi)
 
     def draw(self):
         for point in self.points:
-            if self.aspect < 1:
-                pyxel.circ(WINDOW_W - point[0] * WINDOW_W, (0.5 - (point[1] - 0.5) / self.aspect) * WINDOW_H, self.POINT_SIZE, self.POINT_COLOR)
-            else:
-                pyxel.circ((0.5 - (point[0] - 0.5) * self.aspect) * WINDOW_W, point[1] * WINDOW_H, self.POINT_SIZE, self.POINT_COLOR)
+            pyxel.circ(point[0] * WINDOW_W, point[1] * WINDOW_H, self.POINT_SIZE, self.POINT_COLOR)
+        pyxel.circ(self.target[0] * WINDOW_W, self.target[1] * WINDOW_H, self.TARGET_SIZE, self.TARGET_COLOR)
+
+    def thumb_length(self):
+        return distance.euclidean(self.points[2], self.points[4])
+
+    def index_finger_length(self):
+        return distance.euclidean(self.points[5], self.points[8])
+
+    def index_finger_vector(self):
+        return self.points[8] - self.points[5]
+    
+    def index_finger_base(self):
+        return self.points[5]
+    
+    def calc_target(self, senshi):
+        target_vector = self.index_finger_base() + self.index_finger_vector() / self.thumb_length() * senshi
+        return target_vector
+
 
 class App:
     def __init__(self):
         pyxel.init(WINDOW_W, WINDOW_H)
         self.hands = []
+        self.senshi = 0.5
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -41,7 +66,7 @@ class App:
 
     def update(self):
         landmarks = js.getLandmarks().to_py()
-        self.hands = [Hand(landmark, self.videoAspect) for landmark in landmarks]
+        self.hands = [Hand(landmark, self.videoAspect, self.senshi) for landmark in landmarks]
 
     def draw(self):
         pyxel.cls(0)
