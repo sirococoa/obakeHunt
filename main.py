@@ -36,6 +36,9 @@ class Hand:
 
     def thumb_length(self):
         return distance.euclidean(self.points[2], self.points[4])
+    
+    def thumb_tip_point(self):
+        return self.points[4]
 
     def index_finger_length(self):
         return distance.euclidean(self.points[5], self.points[8])
@@ -45,6 +48,9 @@ class Hand:
     
     def index_finger_base(self):
         return self.points[5]
+    
+    def ring_finger_pip_point(self):
+        return self.points[14]
     
     def calc_target(self, senshi):
         target_vector = self.index_finger_base() + self.index_finger_vector() / self.thumb_length() * senshi
@@ -104,12 +110,31 @@ class ShotDetector:
         return self.position
 
 
+class ReloadDetector:
+    RELOAD_DETECTION_DISTANCE = 0.1
+
+    def __init__(self):
+        self.reload_flag = False
+
+    def update(self, hand :Hand):
+        if distance.euclidean(hand.thumb_tip_point(), hand.ring_finger_pip_point()) < hand.thumb_length():
+            self.reload_flag = True
+        else:
+            self.reload_flag = False
+    
+    def is_reload(self):
+        return self.reload_flag
+
+
 class App:
+    BULLET_NUM = 6
     def __init__(self):
         pyxel.init(WINDOW_W, WINDOW_H)
         self.hands = []
         self.senshi = 0.5
+        self.bullet_num = self.BULLET_NUM
         self.shot_detector = ShotDetector()
+        self.reload_detector = ReloadDetector()
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -125,6 +150,11 @@ class App:
         self.hands = [Hand(landmark, self.videoAspect, self.senshi) for landmark in landmarks]
         if self.hands:
             self.shot_detector.update(self.hands[0].target)
+            self.reload_detector.update(self.hands[0])
+        if self.shot_detector.is_shot():
+            self.bullet_num -= 1
+        if self.reload_detector.is_reload():
+            self.bullet_num = self.BULLET_NUM
 
     def draw(self):
         pyxel.cls(0)
@@ -133,6 +163,7 @@ class App:
         fire_position = self.shot_detector.shot_position()
         if fire_position is not None:
             pyxel.circ(fire_position[0] * WINDOW_W, fire_position[1] * WINDOW_H, 3, 11)
+        pyxel.text(10, 10, str(self.bullet_num), 7)
 
 
 App()
