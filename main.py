@@ -1,4 +1,5 @@
 from collections import deque
+import random
 import time
 from typing import Any
 
@@ -55,7 +56,7 @@ class Hand:
     
     def calc_target(self, senshi) -> numpy.ndarray:
         target_vector = self.index_finger_base() + self.index_finger_vector() / self.thumb_length() * senshi
-        return target_vector
+        return target_vector[:2]
 
 
 class ShotDetector:
@@ -127,6 +128,34 @@ class ReloadDetector:
         return self.reload_flag
 
 
+class Obake:
+    W = 16
+    H = 16
+    COLLISION_MARGIN = 8
+
+    def __init__(self, x: int, y: int, shot_detector: ShotDetector) -> None:
+        self.x = x
+        self.y = y
+        self.shot_detector = shot_detector
+        self.active = True
+
+    def update(self) -> None:
+         if self.shot_detector.is_shot():
+            shot_position = self.shot_detector.shot_position()
+            if self.collision(shot_position[0] * WINDOW_W, shot_position[1] * WINDOW_H):
+                self.active = False
+
+    def collision(self, sx: int, sy: int) -> bool:
+        return (-self.COLLISION_MARGIN <= sx - self.x < self.W + self.COLLISION_MARGIN)\
+            and (-self.COLLISION_MARGIN <= sy - self.y < self.H + self.COLLISION_MARGIN)
+    
+    def is_active(self):
+        return self.active
+
+    def draw(self) -> None:
+        pyxel.rect(self.x, self.y, self.W, self.H, 7)
+
+
 class App:
     BULLET_NUM = 6
     def __init__(self) -> None:
@@ -136,6 +165,7 @@ class App:
         self.bullet_num = self.BULLET_NUM
         self.shot_detector = ShotDetector()
         self.reload_detector = ReloadDetector()
+        self.obake_list = []
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -157,6 +187,13 @@ class App:
         if self.reload_detector.is_reload():
             self.bullet_num = self.BULLET_NUM
 
+        for obake in self.obake_list:
+            obake.update()
+        self.obake_list = [obake for obake in self.obake_list if obake.is_active()]
+        if len(self.obake_list) < 5:
+            self.obake_list.append(Obake(random.randrange(0, WINDOW_W), random.randrange(0, WINDOW_H), self.shot_detector))
+        
+
     def draw(self) -> None:
         pyxel.cls(0)
         for hand in self.hands:
@@ -165,6 +202,8 @@ class App:
         if fire_position is not None:
             pyxel.circ(fire_position[0] * WINDOW_W, fire_position[1] * WINDOW_H, 3, 11)
         pyxel.text(10, 10, str(self.bullet_num), 7)
+        for obake in self.obake_list:
+            obake.draw()
 
 
 App()
