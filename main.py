@@ -9,8 +9,8 @@ import js
 import numpy
 from scipy.spatial import distance
 
-WINDOW_W = 400
-WINDOW_H = 400
+WINDOW_W = 256
+WINDOW_H = 256
 
 
 class Hand:
@@ -156,6 +156,25 @@ class Obake:
         pyxel.rect(self.x, self.y, self.W, self.H, 7)
 
 
+class BackGroundImage:
+    ASSET_FILE = "./assets/background.png"
+    X = 0
+    Y = 0
+    I = 0
+    U = 0
+    V = 0
+    W = 256
+    H = 256
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+    
+    def draw(self) -> None:
+        pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
+
 class App:
     BULLET_NUM = 6
     def __init__(self) -> None:
@@ -166,6 +185,7 @@ class App:
         self.shot_detector = ShotDetector()
         self.reload_detector = ReloadDetector()
         self.obake_list = []
+        self.back_ground = BackGroundImage()
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -196,6 +216,7 @@ class App:
 
     def draw(self) -> None:
         pyxel.cls(0)
+        self.back_ground.draw()
         for hand in self.hands:
             hand.draw()
         fire_position = self.shot_detector.shot_position()
