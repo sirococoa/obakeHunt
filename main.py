@@ -195,6 +195,31 @@ class BackGroundImage:
     def draw(self) -> None:
         pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
 
+
+class BulletUI:
+    X = 100
+    Y = 190
+    BULLET_W = 10 # BULLET_W * 3 + MARGIN_X * 2 = 56
+    BULLET_H = 25 # BULLET_W * 2 + MARGIN_X * 1 = 60
+    MARGIN_X = 13
+    MARGIN_Y = 10
+
+    def __init__(self) -> None:
+        pass
+
+    def draw(self, num: int) -> None:
+        for i in range(2):
+            for j in range(3):
+                x = self.X + j * (self.BULLET_W + self.MARGIN_X)
+                y = self.Y + i * (self.BULLET_H + self.MARGIN_Y)
+                w = self.BULLET_W
+                h = self.BULLET_H
+                if (1 - i) * 3 + j < num:
+                    pyxel.rect(x, y, w, h, 9)
+                else:
+                    pyxel.rectb(x, y, w, h, 9)
+
+
 class App:
     BULLET_NUM = 6
     def __init__(self) -> None:
@@ -207,6 +232,7 @@ class App:
         self.obake_list = []
         self.back_ground = BackGroundImage()
         self.obake_image = ObakeImage()
+        self.bullet_ui = BulletUI()
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -246,6 +272,7 @@ class App:
         pyxel.text(10, 10, str(self.bullet_num), 7)
         for obake in self.obake_list:
             obake.draw()
+        self.bullet_ui.draw(self.bullet_num)
 
 
 App()
