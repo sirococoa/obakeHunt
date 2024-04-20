@@ -128,15 +128,35 @@ class ReloadDetector:
         return self.reload_flag
 
 
-class Obake:
-    W = 16
-    H = 16
-    COLLISION_MARGIN = 8
+class ObakeImage:
+    ASSET_FILE = "./assets/obake.png"
+    I = 1
+    U = 0
+    V = 0
+    W = 32
+    H = 32
+    COLKEY = 15
 
-    def __init__(self, x: int, y: int, shot_detector: ShotDetector) -> None:
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+    
+    def draw(self, x: int, y: int) -> None:
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
+
+
+class Obake:
+    W = 32
+    H = 32
+    COLLISION_MARGIN = 0
+
+    def __init__(self, x: int, y: int, shot_detector: ShotDetector, obake_image: ObakeImage) -> None:
         self.x = x
         self.y = y
         self.shot_detector = shot_detector
+        self.image = obake_image
         self.active = True
 
     def update(self) -> None:
@@ -153,7 +173,7 @@ class Obake:
         return self.active
 
     def draw(self) -> None:
-        pyxel.rect(self.x, self.y, self.W, self.H, 7)
+        self.image.draw(self.x, self.y)
 
 
 class BackGroundImage:
@@ -186,6 +206,7 @@ class App:
         self.reload_detector = ReloadDetector()
         self.obake_list = []
         self.back_ground = BackGroundImage()
+        self.obake_image = ObakeImage()
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -211,8 +232,8 @@ class App:
             obake.update()
         self.obake_list = [obake for obake in self.obake_list if obake.is_active()]
         if len(self.obake_list) < 5:
-            self.obake_list.append(Obake(random.randrange(0, WINDOW_W), random.randrange(0, WINDOW_H), self.shot_detector))
-        
+            self.obake_list.append(Obake(random.randrange(0, WINDOW_W), random.randrange(0, WINDOW_H), self.shot_detector, self.obake_image))
+
 
     def draw(self) -> None:
         pyxel.cls(0)
