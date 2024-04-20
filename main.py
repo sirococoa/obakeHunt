@@ -196,6 +196,46 @@ class BackGroundImage:
         pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
 
 
+class BulletImage:
+    ASSET_FILE = "./assets/bullet.png"
+    X = 0
+    Y = 0
+    I = 1
+    U = 32
+    V = 32
+    W = 10
+    H = 25
+    COLKEY = 15
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+    
+    def draw(self, x: int, y: int) -> None:
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
+
+class BulletEmptyImage:
+    ASSET_FILE = "./assets/bullet_empty.png"
+    X = 0
+    Y = 0
+    I = 1
+    U = 42
+    V = 32
+    W = 10
+    H = 25
+    COLKEY = 15
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+    
+    def draw(self, x: int, y: int) -> None:
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
+
 class BulletUI:
     X = 100
     Y = 190
@@ -205,19 +245,18 @@ class BulletUI:
     MARGIN_Y = 10
 
     def __init__(self) -> None:
-        pass
+        self.bullet_image = BulletImage()
+        self.bullet_empty_image = BulletEmptyImage()
 
     def draw(self, num: int) -> None:
         for i in range(2):
             for j in range(3):
                 x = self.X + j * (self.BULLET_W + self.MARGIN_X)
                 y = self.Y + i * (self.BULLET_H + self.MARGIN_Y)
-                w = self.BULLET_W
-                h = self.BULLET_H
                 if (1 - i) * 3 + j < num:
-                    pyxel.rect(x, y, w, h, 9)
+                    self.bullet_image.draw(x, y)
                 else:
-                    pyxel.rectb(x, y, w, h, 9)
+                    self.bullet_empty_image.draw(x, y)
 
 
 class App:
