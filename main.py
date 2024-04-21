@@ -162,7 +162,8 @@ class Obake:
          pass
 
     def shot(self, position: numpy.ndarray):
-        if self.collision(position[0] * WINDOW_W, position[1] * WINDOW_H):
+        if self.collision(position[0] * WINDOW_W, position[1] * WINDOW_H) and self.active:
+            Score.add_score(self.x, self.y, 1000)
             self.active = False
 
     def collision(self, sx: int, sy: int) -> bool:
@@ -340,6 +341,42 @@ class BulletManager:
             self.reload_ui.draw(self.reload_count / self.RELOAD_TIME + self.RELOAD_DISPLAY_OFFSET)
 
 
+class Score:
+    score_list = []
+    COUNT_TIME = 30
+
+    def __init__(self, x: int, y: int, score: int, count: int) -> None:
+        self.x = x
+        self.y = y
+        self.score = score
+        self.count = count
+        self.active = True
+
+    def _update(self) -> None:
+        if self.count > 0:
+            self.count -= 1
+        if self.count == 0:
+            self.active = False
+
+    def _draw(self) -> None:
+        pyxel.text(self.x, self.y, str(self.score), 7)
+
+    @classmethod
+    def add_score(cls, x: int, y: int, score: int):
+        cls.score_list.append(Score(x, y, score, cls.COUNT_TIME))
+
+    @classmethod
+    def update(cls):
+        for score in cls.score_list:
+            score._update()
+        cls.score_list = [score for score in cls.score_list if score.active]
+
+    @classmethod
+    def draw(cls):
+        for score in cls.score_list:
+            score._draw()
+
+
 class App:
     def __init__(self) -> None:
         pyxel.init(WINDOW_W, WINDOW_H)
@@ -384,6 +421,8 @@ class App:
         if len(self.obake_list) < 5:
             self.obake_list.append(Obake(random.randrange(0, WINDOW_W), random.randrange(0, WINDOW_H), self.obake_image))
 
+        Score.update()
+
 
     def draw(self) -> None:
         pyxel.cls(0)
@@ -396,6 +435,7 @@ class App:
         for obake in self.obake_list:
             obake.draw()
         self.bullet_manger.draw()
+        Score.draw()
 
 
 App()
