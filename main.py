@@ -38,7 +38,7 @@ class Hand:
 
     def thumb_length(self) -> float:
         return distance.euclidean(self.points[2], self.points[4])
-    
+
     def thumb_tip_point(self) -> numpy.ndarray:
         return self.points[4]
 
@@ -47,13 +47,13 @@ class Hand:
 
     def index_finger_vector(self) -> numpy.ndarray:
         return self.points[8] - self.points[5]
-    
+
     def index_finger_base(self) -> numpy.ndarray:
         return self.points[5]
-    
+
     def ring_finger_pip_point(self) -> numpy.ndarray:
         return self.points[14]
-    
+
     def calc_target(self, senshi) -> numpy.ndarray:
         target_vector = self.index_finger_base() + self.index_finger_vector() / self.thumb_length() * senshi
         return target_vector[:2]
@@ -93,7 +93,7 @@ class ShotDetector:
         if all(d < self.MARK_DETECTION_ACCURACY for d in distance_list):
             self.mark = current
             self.marked_index = len(self.target_history) - 1
-    
+
     def detect_shot(self) -> None:
         self.shot_flag = False
         current = self.target_history[-1]
@@ -107,7 +107,7 @@ class ShotDetector:
 
     def is_shot(self) -> bool:
         return self.shot_flag
-    
+
     def shot_position(self) -> numpy.ndarray:
         return self.position
 
@@ -123,7 +123,7 @@ class ReloadDetector:
             self.reload_flag = True
         else:
             self.reload_flag = False
-    
+
     def is_reload(self) -> None:
         return self.reload_flag
 
@@ -142,7 +142,7 @@ class ObakeImage:
 
     def load(self) -> None:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
-    
+
     def draw(self, x: int, y: int) -> None:
         pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
 
@@ -168,7 +168,7 @@ class Obake:
     def collision(self, sx: int, sy: int) -> bool:
         return (-self.COLLISION_MARGIN <= sx - self.x < self.W + self.COLLISION_MARGIN)\
             and (-self.COLLISION_MARGIN <= sy - self.y < self.H + self.COLLISION_MARGIN)
-    
+
     def is_active(self):
         return self.active
 
@@ -191,7 +191,7 @@ class BackGroundImage:
 
     def load(self) -> None:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
-    
+
     def draw(self) -> None:
         pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
 
@@ -212,7 +212,7 @@ class BulletImage:
 
     def load(self) -> None:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
-    
+
     def draw(self, x: int, y: int) -> None:
         pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
 
@@ -275,7 +275,7 @@ class ReloadImage:
 
     def load(self) -> None:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
-    
+
     def draw(self, x: int, y: int, progress: float) -> None:
         h = int(self.H * min(max(progress, 0), 1))
         y = y + self.H - h
@@ -305,7 +305,7 @@ class BulletManager:
         self.reload_ui = ReloadUI()
         self.bullet_num = self.BULLET_NUM
         self.reload_count = self.RELOAD_TIME
-    
+
     def update(self) -> None:
         if self.reload_count < self.RELOAD_TIME:
             self.reload_count += 1
@@ -313,12 +313,25 @@ class BulletManager:
                 self.bullet_num = self.BULLET_NUM
 
     def shot(self) -> bool:
+        if self.is_reloading():
+            return False
+        if self.is_out_of_ammo():
+            return False
         self.bullet_num -= 1
         return True
-    
+
     def reload(self) -> None:
-        if self.reload_count == self.RELOAD_TIME:
+        if self.reload_count == self.RELOAD_TIME and not self.is_max_of_ammo():
             self.reload_count = 0
+
+    def is_reloading(self) -> bool:
+        return self.reload_count < self.RELOAD_TIME
+
+    def is_out_of_ammo(self) -> bool:
+        return self.bullet_num <= 0
+    
+    def is_max_of_ammo(self) -> bool:
+        return self.bullet_num >= self.BULLET_NUM
 
     def draw(self) -> None:
         self.bullet_ui.draw(self.bullet_num)
@@ -353,7 +366,7 @@ class App:
         if self.hands:
             self.shot_detector.update(self.hands[0].target)
             self.reload_detector.update(self.hands[0])
-        
+
         self.bullet_manger.update()
 
         if self.shot_detector.is_shot():
