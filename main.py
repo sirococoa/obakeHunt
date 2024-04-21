@@ -239,6 +239,8 @@ class BulletEmptyImage:
 class BulletUI:
     X = 100
     Y = 190
+    W = 56
+    H = 60
     BULLET_W = 10 # BULLET_W * 3 + MARGIN_X * 2 = 56
     BULLET_H = 25 # BULLET_W * 2 + MARGIN_X * 1 = 60
     MARGIN_X = 13
@@ -259,8 +261,25 @@ class BulletUI:
                     self.bullet_empty_image.draw(x, y)
 
 
+class ReloadUI:
+    W = 54
+    H = 16
+    X = BulletUI.X + (BulletUI.W - W) // 2
+    Y = BulletUI.Y + (BulletUI.H - H) // 2
+
+    def __init__(self) -> None:
+        pass
+
+    def draw(self, progress: float) -> None:
+        h = int(self.H * min(max(progress, 0), 1))
+        y = self.Y + self.H - h
+        pyxel.rect(self.X, y, self.W, h, 7)
+
+
 class App:
     BULLET_NUM = 6
+    RELOAD_TIME = 60
+
     def __init__(self) -> None:
         pyxel.init(WINDOW_W, WINDOW_H)
         self.hands = []
@@ -272,6 +291,8 @@ class App:
         self.back_ground = BackGroundImage()
         self.obake_image = ObakeImage()
         self.bullet_ui = BulletUI()
+        self.reload_ui = ReloadUI()
+        self.reload_count = self.RELOAD_TIME
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -283,6 +304,11 @@ class App:
         pyxel.run(self.update, self.draw)
 
     def update(self) -> None:
+        if self.reload_count < self.RELOAD_TIME:
+            self.reload_count += 1
+            if self.reload_count == self.RELOAD_TIME:
+                self.bullet_num = self.BULLET_NUM
+
         landmarks = js.getLandmarks().to_py()
         self.hands = [Hand(landmark, self.videoAspect, self.senshi) for landmark in landmarks]
         if self.hands:
@@ -290,8 +316,8 @@ class App:
             self.reload_detector.update(self.hands[0])
         if self.shot_detector.is_shot():
             self.bullet_num -= 1
-        if self.reload_detector.is_reload():
-            self.bullet_num = self.BULLET_NUM
+        if self.reload_count == self.RELOAD_TIME and self.reload_detector.is_reload():
+            self.reload_count = 0
 
         for obake in self.obake_list:
             obake.update()
@@ -312,6 +338,8 @@ class App:
         for obake in self.obake_list:
             obake.draw()
         self.bullet_ui.draw(self.bullet_num)
+        if self.reload_count < self.RELOAD_TIME:
+            self.reload_ui.draw(self.reload_count / self.RELOAD_TIME)
 
 
 App()
