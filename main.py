@@ -341,8 +341,33 @@ class BulletManager:
             self.reload_ui.draw(self.reload_count / self.RELOAD_TIME + self.RELOAD_DISPLAY_OFFSET)
 
 
+class NumberImage:
+    ASSET_FILE = "./assets/number.png"
+    I = 1
+    U = 0
+    V = 78
+    W = 50 
+    NUMBER_W = 5 # NUMBER_W * 10 = W
+    H = 9
+    COLKEY = 0
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self, x: int, y: int, number: int) -> None:
+        for digit in str(number):
+            u = self.U + self.NUMBER_W * int(digit)
+            x = x + self.NUMBER_W
+            w = self.NUMBER_W
+            pyxel.blt(x, y, self.I, u, self.V, w, self.H, self.COLKEY)
+
+
 class Score:
     score_list = []
+    number_image = None
     COUNT_TIME = 30
 
     def __init__(self, x: int, y: int, score: int, count: int) -> None:
@@ -359,11 +384,17 @@ class Score:
             self.active = False
 
     def _draw(self) -> None:
-        pyxel.text(self.x, self.y, str(self.score), 7)
+        y = self.y - (self.COUNT_TIME - self.count) // 2
+        self.number_image.draw(self.x, y, self.score)
 
     @classmethod
     def add_score(cls, x: int, y: int, score: int):
-        cls.score_list.append(Score(x, y, score, cls.COUNT_TIME))
+        if cls.number_image is not None:
+            cls.score_list.append(Score(x, y, score, cls.COUNT_TIME))
+
+    @classmethod
+    def load_number_image(cls, number_image: NumberImage):
+        cls.number_image = number_image
 
     @classmethod
     def update(cls):
@@ -388,6 +419,8 @@ class App:
         self.back_ground = BackGroundImage()
         self.obake_image = ObakeImage()
         self.bullet_manger = BulletManager()
+        self.number_image = NumberImage()
+        Score.load_number_image(self.number_image)
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
