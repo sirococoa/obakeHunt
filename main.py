@@ -261,19 +261,39 @@ class BulletUI:
                     self.bullet_empty_image.draw(x, y)
 
 
+class ReloadImage:
+    ASSET_FILE = "./assets/reload.png"
+    I = 1
+    U = 0
+    V = 57
+    W = 68
+    H = 21
+    COLKEY = 0
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+    
+    def draw(self, x: int, y: int, progress: float) -> None:
+        h = int(self.H * min(max(progress, 0), 1))
+        y = y + self.H - h
+        v = self.V + self.H - h
+        pyxel.blt(x, y, self.I, self.U, v, self.W, h, self.COLKEY)
+
+
 class ReloadUI:
-    W = 54
-    H = 16
+    W = 68
+    H = 21
     X = BulletUI.X + (BulletUI.W - W) // 2
     Y = BulletUI.Y + (BulletUI.H - H) // 2
 
     def __init__(self) -> None:
-        pass
+        self.reload_image = ReloadImage()
 
     def draw(self, progress: float) -> None:
-        h = int(self.H * min(max(progress, 0), 1))
-        y = self.Y + self.H - h
-        pyxel.rect(self.X, y, self.W, h, 7)
+        self.reload_image.draw(self.X, self.Y, progress)
 
 
 class App:
