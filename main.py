@@ -299,6 +299,7 @@ class ReloadUI:
 class BulletManager:
     BULLET_NUM = 6
     RELOAD_TIME = 60
+    RELOAD_DISPLAY_OFFSET = 0.1
 
     def __init__(self) -> None:
         self.bullet_ui = BulletUI()
@@ -336,7 +337,7 @@ class BulletManager:
     def draw(self) -> None:
         self.bullet_ui.draw(self.bullet_num)
         if self.reload_count < self.RELOAD_TIME:
-            self.reload_ui.draw(self.reload_count / self.RELOAD_TIME)
+            self.reload_ui.draw(self.reload_count / self.RELOAD_TIME + self.RELOAD_DISPLAY_OFFSET)
 
 
 class App:
