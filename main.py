@@ -296,23 +296,47 @@ class ReloadUI:
         self.reload_image.draw(self.X, self.Y, progress)
 
 
-class App:
+class BulletManager:
     BULLET_NUM = 6
     RELOAD_TIME = 60
 
     def __init__(self) -> None:
+        self.bullet_ui = BulletUI()
+        self.reload_ui = ReloadUI()
+        self.bullet_num = self.BULLET_NUM
+        self.reload_count = self.RELOAD_TIME
+    
+    def update(self) -> None:
+        if self.reload_count < self.RELOAD_TIME:
+            self.reload_count += 1
+            if self.reload_count == self.RELOAD_TIME:
+                self.bullet_num = self.BULLET_NUM
+
+    def shot(self) -> bool:
+        self.bullet_num -= 1
+        return True
+    
+    def reload(self) -> None:
+        if self.reload_count == self.RELOAD_TIME:
+            self.reload_count = 0
+
+    def draw(self) -> None:
+        self.bullet_ui.draw(self.bullet_num)
+        if self.reload_count < self.RELOAD_TIME:
+            self.reload_ui.draw(self.reload_count / self.RELOAD_TIME)
+
+
+class App:
+    def __init__(self) -> None:
         pyxel.init(WINDOW_W, WINDOW_H)
         self.hands = []
         self.senshi = 0.5
-        self.bullet_num = self.BULLET_NUM
         self.shot_detector = ShotDetector()
         self.reload_detector = ReloadDetector()
         self.obake_list = []
         self.back_ground = BackGroundImage()
         self.obake_image = ObakeImage()
-        self.bullet_ui = BulletUI()
-        self.reload_ui = ReloadUI()
-        self.reload_count = self.RELOAD_TIME
+        self.bullet_manger = BulletManager()
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -324,20 +348,18 @@ class App:
         pyxel.run(self.update, self.draw)
 
     def update(self) -> None:
-        if self.reload_count < self.RELOAD_TIME:
-            self.reload_count += 1
-            if self.reload_count == self.RELOAD_TIME:
-                self.bullet_num = self.BULLET_NUM
-
         landmarks = js.getLandmarks().to_py()
         self.hands = [Hand(landmark, self.videoAspect, self.senshi) for landmark in landmarks]
         if self.hands:
             self.shot_detector.update(self.hands[0].target)
             self.reload_detector.update(self.hands[0])
+        
+        self.bullet_manger.update()
+
         if self.shot_detector.is_shot():
-            self.bullet_num -= 1
-        if self.reload_count == self.RELOAD_TIME and self.reload_detector.is_reload():
-            self.reload_count = 0
+            self.bullet_manger.shot()
+        if self.reload_detector.is_reload():
+            self.bullet_manger.reload()
 
         for obake in self.obake_list:
             obake.update()
@@ -354,12 +376,9 @@ class App:
         fire_position = self.shot_detector.shot_position()
         if fire_position is not None:
             pyxel.circ(fire_position[0] * WINDOW_W, fire_position[1] * WINDOW_H, 3, 11)
-        pyxel.text(10, 10, str(self.bullet_num), 7)
         for obake in self.obake_list:
             obake.draw()
-        self.bullet_ui.draw(self.bullet_num)
-        if self.reload_count < self.RELOAD_TIME:
-            self.reload_ui.draw(self.reload_count / self.RELOAD_TIME)
+        self.bullet_manger.draw()
 
 
 App()
