@@ -59,10 +59,10 @@ class Hand:
         return target_vector[:2]
 
 
-class ShotDetector:
+class ShootDetector:
     TARGET_HISTORY_NUM = 60
-    SHOT_DETECTION_LENGTH = 0.25
-    SHOT_DETECTION_ACCURACY = 0.1
+    SHOOT_DETECTION_LENGTH = 0.25
+    SHOOT_DETECTION_ACCURACY = 0.1
     MARK_DETECTION_FLAME = 5
     MARK_DETECTION_ACCURACY = 0.05
 
@@ -71,7 +71,7 @@ class ShotDetector:
         self.position: numpy.ndarray | None = None
         self.mark: numpy.ndarray | None = None
         self.marked_index = 0
-        self.shot_flag = False
+        self.shoot_flag = False
 
     def update(self, target: numpy.ndarray) -> None:
         self.target_history.append(target)
@@ -79,7 +79,7 @@ class ShotDetector:
             return
 
         self.update_mark()
-        self.detect_shot()
+        self.detect_shoot()
 
     def update_mark(self) -> None:
         if self.mark is not None:
@@ -94,21 +94,21 @@ class ShotDetector:
             self.mark = current
             self.marked_index = len(self.target_history) - 1
 
-    def detect_shot(self) -> None:
-        self.shot_flag = False
+    def detect_shoot(self) -> None:
+        self.shoot_flag = False
         current = self.target_history[-1]
-        if self.mark is not None and distance.euclidean(self.mark, current) < self.SHOT_DETECTION_ACCURACY:
+        if self.mark is not None and distance.euclidean(self.mark, current) < self.SHOOT_DETECTION_ACCURACY:
             for i in range(self.marked_index, len(self.target_history)):
-                if self.mark[1] - self.target_history[i][1] > self.SHOT_DETECTION_LENGTH:
+                if self.mark[1] - self.target_history[i][1] > self.SHOOT_DETECTION_LENGTH:
                     self.position = self.mark
                     self.mark = None
-                    self.shot_flag = True
+                    self.shoot_flag = True
                     break
 
-    def is_shot(self) -> bool:
-        return self.shot_flag
+    def is_shoot(self) -> bool:
+        return self.shoot_flag
 
-    def shot_position(self) -> numpy.ndarray:
+    def shoot_position(self) -> numpy.ndarray:
         return self.position
 
 
@@ -152,18 +152,18 @@ class Obake:
     H = 32
     COLLISION_MARGIN = 0
 
-    def __init__(self, x: int, y: int, shot_detector: ShotDetector, obake_image: ObakeImage) -> None:
+    def __init__(self, x: int, y: int, obake_image: ObakeImage) -> None:
         self.x = x
         self.y = y
-        self.shot_detector = shot_detector
         self.image = obake_image
         self.active = True
 
     def update(self) -> None:
-         if self.shot_detector.is_shot():
-            shot_position = self.shot_detector.shot_position()
-            if self.collision(shot_position[0] * WINDOW_W, shot_position[1] * WINDOW_H):
-                self.active = False
+         pass
+
+    def shot(self, position: numpy.ndarray):
+        if self.collision(position[0] * WINDOW_W, position[1] * WINDOW_H):
+            self.active = False
 
     def collision(self, sx: int, sy: int) -> bool:
         return (-self.COLLISION_MARGIN <= sx - self.x < self.W + self.COLLISION_MARGIN)\
@@ -312,7 +312,7 @@ class BulletManager:
             if self.reload_count == self.RELOAD_TIME:
                 self.bullet_num = self.BULLET_NUM
 
-    def shot(self) -> bool:
+    def shoot(self) -> bool:
         if self.is_reloading():
             return False
         if self.is_out_of_ammo():
@@ -344,7 +344,7 @@ class App:
         pyxel.init(WINDOW_W, WINDOW_H)
         self.hands = []
         self.senshi = 0.5
-        self.shot_detector = ShotDetector()
+        self.shoot_detector = ShootDetector()
         self.reload_detector = ReloadDetector()
         self.obake_list = []
         self.back_ground = BackGroundImage()
@@ -364,21 +364,24 @@ class App:
         landmarks = js.getLandmarks().to_py()
         self.hands = [Hand(landmark, self.videoAspect, self.senshi) for landmark in landmarks]
         if self.hands:
-            self.shot_detector.update(self.hands[0].target)
+            self.shoot_detector.update(self.hands[0].target)
             self.reload_detector.update(self.hands[0])
 
         self.bullet_manger.update()
 
-        if self.shot_detector.is_shot():
-            self.bullet_manger.shot()
+        if self.shoot_detector.is_shoot():
+            if self.bullet_manger.shoot():
+                for obake in self.obake_list:
+                    obake.shot(self.shoot_detector.shoot_position())
         if self.reload_detector.is_reload():
             self.bullet_manger.reload()
 
         for obake in self.obake_list:
             obake.update()
+
         self.obake_list = [obake for obake in self.obake_list if obake.is_active()]
         if len(self.obake_list) < 5:
-            self.obake_list.append(Obake(random.randrange(0, WINDOW_W), random.randrange(0, WINDOW_H), self.shot_detector, self.obake_image))
+            self.obake_list.append(Obake(random.randrange(0, WINDOW_W), random.randrange(0, WINDOW_H), self.obake_image))
 
 
     def draw(self) -> None:
@@ -386,9 +389,9 @@ class App:
         self.back_ground.draw()
         for hand in self.hands:
             hand.draw()
-        fire_position = self.shot_detector.shot_position()
-        if fire_position is not None:
-            pyxel.circ(fire_position[0] * WINDOW_W, fire_position[1] * WINDOW_H, 3, 11)
+        shoot_position = self.shoot_detector.shoot_position()
+        if shoot_position is not None:
+            pyxel.circ(shoot_position[0] * WINDOW_W, shoot_position[1] * WINDOW_H, 3, 11)
         for obake in self.obake_list:
             obake.draw()
         self.bullet_manger.draw()
