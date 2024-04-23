@@ -360,15 +360,18 @@ class NumberImage:
     def draw(self, x: int, y: int, number: int) -> None:
         for digit in str(number):
             u = self.U + self.NUMBER_W * int(digit)
-            x = x + self.NUMBER_W
             w = self.NUMBER_W
             pyxel.blt(x, y, self.I, u, self.V, w, self.H, self.COLKEY)
+            x = x + self.NUMBER_W
 
 
 class Score:
     score_list = []
+    total = 0
     number_image = None
     COUNT_TIME = 30
+    TOTAL_MARGIN_X = 10
+    TOTAL_MARGIN_Y = 10
 
     def __init__(self, x: int, y: int, score: int, count: int) -> None:
         self.x = x
@@ -391,10 +394,16 @@ class Score:
     def add_score(cls, x: int, y: int, score: int):
         if cls.number_image is not None:
             cls.score_list.append(Score(x, y, score, cls.COUNT_TIME))
+            cls.total += score
 
     @classmethod
     def load_number_image(cls, number_image: NumberImage):
         cls.number_image = number_image
+
+    @classmethod
+    def reset(cls):
+        cls.score_list = []
+        cls.total = 0
 
     @classmethod
     def update(cls):
@@ -406,6 +415,9 @@ class Score:
     def draw(cls):
         for score in cls.score_list:
             score._draw()
+        tx = WINDOW_W - cls.TOTAL_MARGIN_X - NumberImage.NUMBER_W * len(str(cls.total))
+        ty = WINDOW_H - cls.TOTAL_MARGIN_Y - NumberImage.H
+        cls.number_image.draw(tx, ty, cls.total)
 
 
 class App:
