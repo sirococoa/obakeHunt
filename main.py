@@ -151,15 +151,32 @@ class Obake:
     W = 32
     H = 32
     COLLISION_MARGIN = 0
+    ZIGZAG_DURATION = 60
 
-    def __init__(self, x: int, y: int, obake_image: ObakeImage) -> None:
+    def __init__(self, x: int, y: int, obake_image: ObakeImage, direction: list) -> None:
         self.x = x
         self.y = y
         self.image = obake_image
+        self.direction = direction
         self.active = True
+        self.count = 0
 
     def update(self) -> None:
-         pass
+        self.count += 1
+        if self.count % (self.ZIGZAG_DURATION*2) < self.ZIGZAG_DURATION:
+            self.x += self.direction[0] + self.direction[1]
+            self.y += -self.direction[0] + 2*self.direction[1]
+        else:
+            self.x += 2*self.direction[0] - self.direction[1]
+            self.y += self.direction[0] + self.direction[1]
+        if self.is_outside():
+            self.active = False
+
+    def is_outside(self) -> bool:
+        if -self.W < self.x < WINDOW_W:
+            if -self.H < self.y < WINDOW_H:
+                return False
+        return True
 
     def shot(self, position: numpy.ndarray):
         if self.collision(position[0] * WINDOW_W, position[1] * WINDOW_H) and self.active:
@@ -464,7 +481,9 @@ class App:
 
         self.obake_list = [obake for obake in self.obake_list if obake.is_active()]
         if len(self.obake_list) < 5:
-            self.obake_list.append(Obake(random.randrange(0, WINDOW_W), random.randrange(0, WINDOW_H), self.obake_image))
+            vx = random.randrange(-1, 2) * 0.3
+            vy = random.randrange(-1, 2) * 0.3
+            self.obake_list.append(Obake(random.randrange(0, WINDOW_W), random.randrange(0, WINDOW_H), self.obake_image, [vx, vy]))
 
         Score.update()
 
