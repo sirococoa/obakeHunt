@@ -151,24 +151,38 @@ class Obake:
     W = 32
     H = 32
     COLLISION_MARGIN = 0
+    UP_SPEED = 0.2
+    LATERAL_SPEED = 0.3
     ZIGZAG_DURATION = 60
+    MIN_FLIP_COUNT = 120
+    MAX_FLIP_COUNT = 300
 
-    def __init__(self, x: int, y: int, obake_image: ObakeImage, direction: list) -> None:
+    def __init__(self, x: int, y: int, obake_image: ObakeImage, delay: int) -> None:
         self.x = x
         self.y = y
         self.image = obake_image
-        self.direction = direction
+        self.delay = delay
+        if random.random() < 0.5:
+            self.direction = [self.LATERAL_SPEED, -self.UP_SPEED]
+        else:
+            self.direction = [-self.LATERAL_SPEED, -self.UP_SPEED]
         self.active = True
         self.count = 0
+        self.next_flip_count = 0
 
     def update(self) -> None:
         self.count += 1
+        if self.is_waiting():
+            return
         if self.count % (self.ZIGZAG_DURATION*2) < self.ZIGZAG_DURATION:
-            self.x += self.direction[0] + self.direction[1]
-            self.y += -self.direction[0] + 2*self.direction[1]
+            self.x += self.direction[0] + 0.5*(self.direction[0] + self.direction[1])
+            self.y += self.direction[1] + 0.5*(-self.direction[0] + self.direction[1])
         else:
-            self.x += 2*self.direction[0] - self.direction[1]
-            self.y += self.direction[0] + self.direction[1]
+            self.x += self.direction[0] + 0.5*(self.direction[0] - self.direction[1])
+            self.y += self.direction[1] + 0.5*(self.direction[0] + self.direction[1])
+        if self.next_flip_count < self.count or self.is_edge():
+            self.direction[0] = -self.direction[0]
+            self.next_flip_count = self.count + random.randint(self.MIN_FLIP_COUNT, self.MAX_FLIP_COUNT)
         if self.is_outside():
             self.active = False
 
@@ -177,8 +191,18 @@ class Obake:
             if -self.H < self.y < WINDOW_H:
                 return False
         return True
+    
+    def is_edge(self) -> bool:
+        if self.direction[0] < 0:
+            # go left
+            return self.x <= 0
+        else:
+            # go right
+            return self.x + self.W >= WINDOW_W
 
-    def shot(self, position: numpy.ndarray):
+    def shot(self, position: numpy.ndarray) -> None:
+        if self.is_waiting():
+            return
         if self.collision(position[0] * WINDOW_W, position[1] * WINDOW_H) and self.active:
             Score.add_score(self.x, self.y, 1000)
             self.active = False
@@ -190,7 +214,12 @@ class Obake:
     def is_active(self):
         return self.active
 
+    def is_waiting(self):
+        return self.count < self.delay
+
     def draw(self) -> None:
+        if self.is_waiting():
+            return
         self.image.draw(self.x, self.y)
 
 
@@ -437,6 +466,46 @@ class Score:
         cls.number_image.draw(tx, ty, cls.total)
 
 
+class Wave:
+    SPAWN_NUM = (
+        (2, ),
+        (2, ),
+        (3, ),
+        (3, ),
+        (2, 2),
+        (2, 2),
+        (3, 2),
+        (3, 2),
+        (3, 3),
+        (3, 3),
+        (6, ),
+    )
+
+    SPAWN_POINT = (
+        (65, 110),
+        (130, 110),
+        (180, 110),
+        (90, 160),
+        (150, 155),
+        (210, 140),
+    )
+
+    SPAWN_DELAY = 120
+
+    def __init__(self) -> None:
+        self.obake_image = ObakeImage()
+
+    def spawn(self, wave_num: int) -> list[Obake]:
+        obake_list = []
+        if wave_num < 0 or len(self.SPAWN_NUM) <= wave_num:
+            return obake_list
+        for i, spawn_num in enumerate(self.SPAWN_NUM[wave_num]):
+            for x, y in random.sample(self.SPAWN_POINT, spawn_num):
+                delay = self.SPAWN_DELAY * i
+                obake_list.append(Obake(x, y, self.obake_image, delay))
+        return obake_list
+
+
 class App:
     def __init__(self) -> None:
         pyxel.init(WINDOW_W, WINDOW_H)
@@ -446,10 +515,11 @@ class App:
         self.reload_detector = ReloadDetector()
         self.obake_list = []
         self.back_ground = BackGroundImage()
-        self.obake_image = ObakeImage()
         self.bullet_manger = BulletManager()
         self.number_image = NumberImage()
         Score.load_number_image(self.number_image)
+        self.wave = Wave()
+        self.wave_count = 0
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -461,6 +531,11 @@ class App:
         pyxel.run(self.update, self.draw)
 
     def update(self) -> None:
+        if pyxel.btn(pyxel.KEY_R):
+            self.obake_list = []
+            self.wave_count = 0
+            return
+
         landmarks = js.getLandmarks().to_py()
         self.hands = [Hand(landmark, self.videoAspect, self.senshi) for landmark in landmarks]
         if self.hands:
@@ -480,10 +555,14 @@ class App:
             obake.update()
 
         self.obake_list = [obake for obake in self.obake_list if obake.is_active()]
-        if len(self.obake_list) < 5:
-            vx = random.randrange(-1, 2) * 0.3
-            vy = random.randrange(-1, 2) * 0.3
-            self.obake_list.append(Obake(random.randrange(0, WINDOW_W), random.randrange(0, WINDOW_H), self.obake_image, [vx, vy]))
+        if len(self.obake_list) == 0:
+            obake_list = self.wave.spawn(self.wave_count)
+            if obake_list:
+                self.obake_list.extend(obake_list)
+                self.wave_count += 1
+            else:
+                # end game
+                pass
 
         Score.update()
 
