@@ -23,7 +23,7 @@ class Hand:
     def __init__(self, landmarks: Any, aspect: float, senshi: float) -> None:
         self.points = []
         for landmark in landmarks:
-            x, y, z = landmark["x"], landmark["y"], landmark["z"]
+            x, y, z = landmark['x'], landmark['y'], landmark['z']
             if aspect < 1:
                 self.points.append(numpy.asarray((x, 0.5 - (y - 0.5) / aspect, z)))
             else:
@@ -129,7 +129,7 @@ class ReloadDetector:
 
 
 class ObakeImage:
-    ASSET_FILE = "./assets/obake.png"
+    ASSET_FILE = './assets/obake.png'
     I = 1
     U = 0
     V = 0
@@ -195,7 +195,7 @@ class Obake:
 
 
 class BackGroundImage:
-    ASSET_FILE = "./assets/background.png"
+    ASSET_FILE = './assets/background.png'
     X = 0
     Y = 0
     I = 0
@@ -215,7 +215,7 @@ class BackGroundImage:
 
 
 class BulletImage:
-    ASSET_FILE = "./assets/bullet.png"
+    ASSET_FILE = './assets/bullet.png'
     X = 0
     Y = 0
     I = 1
@@ -235,7 +235,7 @@ class BulletImage:
         pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
 
 class BulletEmptyImage:
-    ASSET_FILE = "./assets/bullet_empty.png"
+    ASSET_FILE = './assets/bullet_empty.png'
     X = 0
     Y = 0
     I = 1
@@ -280,7 +280,7 @@ class BulletUI:
 
 
 class ReloadImage:
-    ASSET_FILE = "./assets/reload.png"
+    ASSET_FILE = './assets/reload.png'
     I = 1
     U = 0
     V = 57
@@ -359,7 +359,7 @@ class BulletManager:
 
 
 class NumberImage:
-    ASSET_FILE = "./assets/number.png"
+    ASSET_FILE = './assets/number.png'
     I = 1
     U = 0
     V = 78
