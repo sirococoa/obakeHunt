@@ -37,7 +37,7 @@ class Hand:
         pyxel.circ(self.target[0] * WINDOW_W, self.target[1] * WINDOW_H, self.TARGET_SIZE, self.TARGET_COLOR)
 
     def thumb_length(self) -> float:
-        return distance.euclidean(self.points[2], self.points[4])
+        return distance.euclidean(self.points[2], self.points[3]) + distance.euclidean(self.points[3], self.points[4])
 
     def thumb_tip_point(self) -> numpy.ndarray:
         return self.points[4]
@@ -50,6 +50,12 @@ class Hand:
 
     def index_finger_base(self) -> numpy.ndarray:
         return self.points[5]
+    
+    def index_finger_tip_point(self) -> numpy.ndarray:
+        return self.points[8]
+    
+    def middle_finger_tip_point(self) -> numpy.ndarray:
+        return self.points[12]
 
     def ring_finger_pip_point(self) -> numpy.ndarray:
         return self.points[14]
@@ -113,13 +119,12 @@ class ShootDetector:
 
 
 class ReloadDetector:
-    RELOAD_DETECTION_DISTANCE = 0.1
-
     def __init__(self) -> None:
         self.reload_flag = False
 
     def update(self, hand: Hand) -> None:
-        if distance.euclidean(hand.thumb_tip_point(), hand.ring_finger_pip_point()) < hand.thumb_length():
+        if distance.euclidean(hand.thumb_tip_point(), hand.ring_finger_pip_point()) < hand.thumb_length() and \
+            distance.euclidean(hand.index_finger_tip_point(), hand.middle_finger_tip_point()) < hand.thumb_length():
             self.reload_flag = True
         else:
             self.reload_flag = False
