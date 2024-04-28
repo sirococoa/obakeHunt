@@ -161,6 +161,7 @@ class Obake:
     ZIGZAG_DURATION = 60
     MIN_FLIP_COUNT = 120
     MAX_FLIP_COUNT = 300
+    APPEAR_TIME = 20
 
     def __init__(self, x: int, y: int, obake_image: ObakeImage, delay: int) -> None:
         self.x = x
@@ -177,7 +178,7 @@ class Obake:
 
     def update(self) -> None:
         self.count += 1
-        if self.is_waiting():
+        if self.is_waiting() or self.is_appearing():
             return
         if self.count % (self.ZIGZAG_DURATION*2) < self.ZIGZAG_DURATION:
             self.x += self.direction[0] + 0.5*(self.direction[0] + self.direction[1])
@@ -206,7 +207,7 @@ class Obake:
             return self.x + self.W >= WINDOW_W
 
     def shot(self, position: numpy.ndarray) -> None:
-        if self.is_waiting():
+        if self.is_waiting() or self.is_appearing():
             return
         if self.collision(position[0] * WINDOW_W, position[1] * WINDOW_H) and self.active:
             Score.add_score(self.x, self.y, 1000)
@@ -216,16 +217,23 @@ class Obake:
         return (-self.COLLISION_MARGIN <= sx - self.x < self.W + self.COLLISION_MARGIN)\
             and (-self.COLLISION_MARGIN <= sy - self.y < self.H + self.COLLISION_MARGIN)
 
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.active
 
-    def is_waiting(self):
+    def is_waiting(self) -> bool:
         return self.count < self.delay
+
+    def is_appearing(self) -> bool:
+        return self.delay < self.count < self.delay + self.APPEAR_TIME
 
     def draw(self) -> None:
         if self.is_waiting():
             return
+        if self.is_appearing():
+            dither = max(0, min(1, (self.count - self.delay) / self.APPEAR_TIME))
+            pyxel.dither(dither)
         self.image.draw(self.x, self.y)
+        pyxel.dither(1)
 
 
 class BackGroundImage:
