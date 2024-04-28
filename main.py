@@ -148,8 +148,11 @@ class ObakeDeadImage:
     def load(self) -> None:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
 
-    def draw(self, x: int, y: int) -> None:
-        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
+    def draw(self, x: int, y: int, flip: bool) -> None:
+        if flip:
+            pyxel.blt(x, y, self.I, self.U, self.V, -self.W, self.H, self.COLKEY)
+        else:
+            pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
 
 
 class ObakeDeadParticle:
@@ -158,9 +161,10 @@ class ObakeDeadParticle:
     ACTIVE_TIME = 30
     OFFSET = 0.1
 
-    def __init__(self, x: int, y: int) -> None:
+    def __init__(self, x: int, y: int, flip: bool) -> None:
         self.x = x
         self.y = y
+        self.flip = flip
         self.count = 0
         self.active = True
 
@@ -172,13 +176,13 @@ class ObakeDeadParticle:
     def _draw(self) -> None:
         dither = max(0, min(1, (self.ACTIVE_TIME - self.count) / self.ACTIVE_TIME + self.OFFSET))
         pyxel.dither(dither)
-        self.obake_dead_image.draw(self.x, self.y)
+        self.obake_dead_image.draw(self.x, self.y, self.flip)
         pyxel.dither(1)
 
     @classmethod
-    def add_particle(cls, x: int, y: int):
+    def add_particle(cls, x: int, y: int, flip: bool):
         if cls.obake_dead_image is not None:
-            cls.obake_dead_particle_list.append(ObakeDeadParticle(x, y))
+            cls.obake_dead_particle_list.append(ObakeDeadParticle(x, y, flip))
 
     @classmethod
     def load(cls):
@@ -216,8 +220,11 @@ class ObakeImage:
     def load(self) -> None:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
 
-    def draw(self, x: int, y: int) -> None:
-        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
+    def draw(self, x: int, y: int, flip: bool) -> None:
+        if flip:
+            pyxel.blt(x, y, self.I, self.U, self.V, -self.W, self.H, self.COLKEY)
+        else:
+            pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
 
 
 class Obake:
@@ -282,7 +289,10 @@ class Obake:
             return
         if self.collision(position[0] * WINDOW_W, position[1] * WINDOW_H):
             Score.add_score(self.x, self.y, 1000)
-            ObakeDeadParticle.add_particle(self.x, self.y)
+            if self.direction[0] < 0:
+                ObakeDeadParticle.add_particle(self.x, self.y, False)
+            else:
+                ObakeDeadParticle.add_particle(self.x, self.y, True)
             self.active = False
 
     def collision(self, sx: int, sy: int) -> bool:
@@ -304,7 +314,10 @@ class Obake:
         if self.is_appearing():
             dither = max(0, min(1, (self.count - self.delay) / self.APPEAR_TIME))
             pyxel.dither(dither)
-        self.obake_image.draw(self.x, self.y)
+        if self.direction[0] < 0:
+            self.obake_image.draw(self.x, self.y, False)
+        else:
+            self.obake_image.draw(self.x, self.y, True)
         pyxel.dither(1)
 
 
