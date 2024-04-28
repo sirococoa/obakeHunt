@@ -328,6 +328,16 @@ class BackGroundImage:
         pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
 
 
+class BackGround:
+    back_ground_image = None
+
+    @classmethod
+    def draw(cls):
+        if cls.back_ground_image is None:
+            cls.back_ground_image = BackGroundImage()
+        cls.back_ground_image.draw()
+
+
 class BulletImage:
     ASSET_FILE = './assets/bullet.png'
     X = 0
@@ -597,7 +607,6 @@ class App:
         self.shoot_detector = ShootDetector()
         self.reload_detector = ReloadDetector()
         self.obake_list = []
-        self.back_ground = BackGroundImage()
         self.bullet_manger = BulletManager()
         Score.load()
         ObakeDeadParticle.load()
@@ -653,7 +662,7 @@ class App:
 
     def draw(self) -> None:
         pyxel.cls(0)
-        self.back_ground.draw()
+        BackGround.draw()
         for hand in self.hands:
             hand.draw()
         shoot_position = self.shoot_detector.shoot_position()
