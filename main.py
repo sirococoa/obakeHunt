@@ -133,6 +133,74 @@ class ReloadDetector:
         return self.reload_flag
 
 
+class ObakeDeadImage:
+    ASSET_FILE = './assets/obake_dead.png'
+    I = 1
+    U = 32
+    V = 0
+    W = 32
+    H = 32
+    COLKEY = 15
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self, x: int, y: int) -> None:
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
+
+
+class ObakeDeadParticle:
+    obake_dead_particle_list = []
+    obake_dead_image = None
+    ACTIVE_TIME = 30
+    OFFSET = 0.1
+
+    def __init__(self, x: int, y: int) -> None:
+        self.x = x
+        self.y = y
+        self.count = 0
+        self.active = True
+
+    def _update(self) -> None:
+        self.count += 1
+        if self.count >= self.ACTIVE_TIME:
+            self.active = False
+
+    def _draw(self) -> None:
+        dither = max(0, min(1, (self.ACTIVE_TIME - self.count) / self.ACTIVE_TIME + self.OFFSET))
+        pyxel.dither(dither)
+        self.obake_dead_image.draw(self.x, self.y)
+        pyxel.dither(1)
+
+    @classmethod
+    def add_particle(cls, x: int, y: int):
+        if cls.obake_dead_image is not None:
+            cls.obake_dead_particle_list.append(ObakeDeadParticle(x, y))
+
+    @classmethod
+    def load(cls):
+        if cls.obake_dead_image is None:
+            cls.obake_dead_image = ObakeDeadImage()
+
+    @classmethod
+    def reset(cls):
+        cls.obake_dead_particle_list = []
+
+    @classmethod
+    def update(cls):
+        for particle in cls.obake_dead_particle_list:
+            particle._update()
+        cls.obake_dead_particle_list = [particle for particle in cls.obake_dead_particle_list if particle.active]
+
+    @classmethod
+    def draw(cls):
+        for particle in cls.obake_dead_particle_list:
+            particle._draw()
+
+
 class ObakeImage:
     ASSET_FILE = './assets/obake.png'
     I = 1
@@ -178,7 +246,7 @@ class Obake:
 
     def update(self) -> None:
         self.count += 1
-        if self.is_waiting() or self.is_appearing():
+        if not self.is_active() or self.is_waiting() or self.is_appearing():
             return
         if self.count % (self.ZIGZAG_DURATION*2) < self.ZIGZAG_DURATION:
             self.x += self.direction[0] + 0.5*(self.direction[0] + self.direction[1])
@@ -207,10 +275,11 @@ class Obake:
             return self.x + self.W >= WINDOW_W
 
     def shot(self, position: numpy.ndarray) -> None:
-        if self.is_waiting() or self.is_appearing():
+        if not self.is_active() or self.is_waiting() or self.is_appearing():
             return
-        if self.collision(position[0] * WINDOW_W, position[1] * WINDOW_H) and self.active:
+        if self.collision(position[0] * WINDOW_W, position[1] * WINDOW_H):
             Score.add_score(self.x, self.y, 1000)
+            ObakeDeadParticle.add_particle(self.x, self.y)
             self.active = False
 
     def collision(self, sx: int, sy: int) -> bool:
@@ -227,7 +296,7 @@ class Obake:
         return self.delay < self.count < self.delay + self.APPEAR_TIME
 
     def draw(self) -> None:
-        if self.is_waiting():
+        if not self.is_active() or self.is_waiting():
             return
         if self.is_appearing():
             dither = max(0, min(1, (self.count - self.delay) / self.APPEAR_TIME))
@@ -531,6 +600,7 @@ class App:
         self.bullet_manger = BulletManager()
         self.number_image = NumberImage()
         Score.load_number_image(self.number_image)
+        ObakeDeadParticle.load()
         self.wave = Wave()
         self.wave_count = 0
         while True:
@@ -578,6 +648,7 @@ class App:
                 pass
 
         Score.update()
+        ObakeDeadParticle.update()
 
 
     def draw(self) -> None:
@@ -592,6 +663,7 @@ class App:
             obake.draw()
         self.bullet_manger.draw()
         Score.draw()
+        ObakeDeadParticle.draw()
 
 
 App()
