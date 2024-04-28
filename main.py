@@ -439,21 +439,21 @@ class ReloadUI:
 
 
 class BulletManager:
-    BULLET_NUM = 6
+    BULLET_MAX_NUM = 6
     RELOAD_TIME = 60
     RELOAD_DISPLAY_OFFSET = 0.1
 
     def __init__(self) -> None:
         self.bullet_ui = BulletUI()
         self.reload_ui = ReloadUI()
-        self.bullet_num = self.BULLET_NUM
+        self.bullet_num = self.BULLET_MAX_NUM
         self.reload_count = self.RELOAD_TIME
 
     def update(self) -> None:
         if self.reload_count < self.RELOAD_TIME:
             self.reload_count += 1
             if self.reload_count == self.RELOAD_TIME:
-                self.bullet_num = self.BULLET_NUM
+                self.bullet_num = self.BULLET_MAX_NUM
 
     def shoot(self) -> bool:
         if self.is_reloading():
@@ -474,7 +474,7 @@ class BulletManager:
         return self.bullet_num <= 0
     
     def is_max_of_ammo(self) -> bool:
-        return self.bullet_num >= self.BULLET_NUM
+        return self.bullet_num >= self.BULLET_MAX_NUM
 
     def draw(self) -> None:
         self.bullet_ui.draw(self.bullet_num)
@@ -588,15 +588,24 @@ class Wave:
 
     SPAWN_DELAY = 120
 
-    def spawn(self, wave_num: int) -> list[Obake]:
+    def __init__(self) -> None:
+        self.wave_count = 0
+
+    def spawn(self) -> list[Obake]:
+        if self.wave_count == len(self.SPAWN_NUM):
+            return []
+
         obake_list = []
-        if wave_num < 0 or len(self.SPAWN_NUM) <= wave_num:
-            return obake_list
-        for i, spawn_num in enumerate(self.SPAWN_NUM[wave_num]):
+        for i, spawn_num in enumerate(self.SPAWN_NUM[self.wave_count]):
             for x, y in random.sample(self.SPAWN_POINT, spawn_num):
                 delay = self.SPAWN_DELAY * i
                 obake_list.append(Obake(x, y, delay))
+
+        self.wave_count += 1
         return obake_list
+
+    def reset(self):
+        self.wave_count = 0
 
 
 class App:
@@ -611,7 +620,6 @@ class App:
         Score.load()
         ObakeDeadParticle.load()
         self.wave = Wave()
-        self.wave_count = 0
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -625,7 +633,7 @@ class App:
     def update(self) -> None:
         if pyxel.btn(pyxel.KEY_R):
             self.obake_list = []
-            self.wave_count = 0
+            self.wave.reset()
             return
 
         landmarks = js.getLandmarks().to_py()
@@ -648,10 +656,9 @@ class App:
 
         self.obake_list = [obake for obake in self.obake_list if obake.is_active()]
         if len(self.obake_list) == 0:
-            obake_list = self.wave.spawn(self.wave_count)
+            obake_list = self.wave.spawn()
             if obake_list:
                 self.obake_list.extend(obake_list)
-                self.wave_count += 1
             else:
                 # end game
                 pass
