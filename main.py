@@ -221,6 +221,8 @@ class ObakeImage:
 
 
 class Obake:
+    obake_image = None
+
     W = 32
     H = 32
     COLLISION_MARGIN = 0
@@ -231,10 +233,11 @@ class Obake:
     MAX_FLIP_COUNT = 300
     APPEAR_TIME = 20
 
-    def __init__(self, x: int, y: int, obake_image: ObakeImage, delay: int) -> None:
+    def __init__(self, x: int, y: int, delay: int) -> None:
         self.x = x
         self.y = y
-        self.image = obake_image
+        if self.obake_image is None:
+            self.obake_image = ObakeImage()
         self.delay = delay
         if random.random() < 0.5:
             self.direction = [self.LATERAL_SPEED, -self.UP_SPEED]
@@ -301,7 +304,7 @@ class Obake:
         if self.is_appearing():
             dither = max(0, min(1, (self.count - self.delay) / self.APPEAR_TIME))
             pyxel.dither(dither)
-        self.image.draw(self.x, self.y)
+        self.obake_image.draw(self.x, self.y)
         pyxel.dither(1)
 
 
@@ -525,8 +528,9 @@ class Score:
             cls.total += score
 
     @classmethod
-    def load_number_image(cls, number_image: NumberImage):
-        cls.number_image = number_image
+    def load(cls):
+        if cls.number_image is None:
+            cls.number_image = NumberImage()
 
     @classmethod
     def reset(cls):
@@ -574,9 +578,6 @@ class Wave:
 
     SPAWN_DELAY = 120
 
-    def __init__(self) -> None:
-        self.obake_image = ObakeImage()
-
     def spawn(self, wave_num: int) -> list[Obake]:
         obake_list = []
         if wave_num < 0 or len(self.SPAWN_NUM) <= wave_num:
@@ -584,7 +585,7 @@ class Wave:
         for i, spawn_num in enumerate(self.SPAWN_NUM[wave_num]):
             for x, y in random.sample(self.SPAWN_POINT, spawn_num):
                 delay = self.SPAWN_DELAY * i
-                obake_list.append(Obake(x, y, self.obake_image, delay))
+                obake_list.append(Obake(x, y, delay))
         return obake_list
 
 
@@ -598,8 +599,7 @@ class App:
         self.obake_list = []
         self.back_ground = BackGroundImage()
         self.bullet_manger = BulletManager()
-        self.number_image = NumberImage()
-        Score.load_number_image(self.number_image)
+        Score.load()
         ObakeDeadParticle.load()
         self.wave = Wave()
         self.wave_count = 0
