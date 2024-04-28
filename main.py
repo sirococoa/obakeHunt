@@ -621,6 +621,38 @@ class Wave:
         self.wave_count = 0
 
 
+class TitleImage:
+    ASSET_FILE = './assets/title.png'
+    X = 20
+    Y = 5
+    I = 2
+    U = 0
+    V = 0
+    W = 216
+    H = 108
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self) -> None:
+        pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
+
+
+class TitleMenu:
+    title_image = None
+
+    def update(self) -> None:
+        pass
+
+    def draw(self) -> None:
+        if self.title_image is None:
+            self.title_image = TitleImage()
+        self.title_image.draw()
+
+
 class App:
     def __init__(self) -> None:
         pyxel.init(WINDOW_W, WINDOW_H)
@@ -633,6 +665,8 @@ class App:
         Score.load()
         ObakeDeadParticle.load()
         self.wave = Wave()
+        self.title_menu = TitleMenu()
+        self.status = "title"
         while True:
             videoWidth = js.videoWidth
             videoHeight = js.videoHeight
@@ -644,55 +678,61 @@ class App:
         pyxel.run(self.update, self.draw)
 
     def update(self) -> None:
-        if pyxel.btn(pyxel.KEY_R):
-            self.obake_list = []
-            self.wave.reset()
-            return
+        if self.status == "title":
+            self.title_menu.update()
+        if self.status == "play":
+            if pyxel.btn(pyxel.KEY_R):
+                self.obake_list = []
+                self.wave.reset()
+                return
 
-        landmarks = js.getLandmarks().to_py()
-        self.hands = [Hand(landmark, self.videoAspect, self.senshi) for landmark in landmarks]
-        if self.hands:
-            self.shoot_detector.update(self.hands[0].target)
-            self.reload_detector.update(self.hands[0])
+            landmarks = js.getLandmarks().to_py()
+            self.hands = [Hand(landmark, self.videoAspect, self.senshi) for landmark in landmarks]
+            if self.hands:
+                self.shoot_detector.update(self.hands[0].target)
+                self.reload_detector.update(self.hands[0])
 
-        self.bullet_manger.update()
+            self.bullet_manger.update()
 
-        if self.shoot_detector.is_shoot():
-            if self.bullet_manger.shoot():
-                for obake in self.obake_list:
-                    obake.shot(self.shoot_detector.shoot_position())
-        if self.reload_detector.is_reload():
-            self.bullet_manger.reload()
+            if self.shoot_detector.is_shoot():
+                if self.bullet_manger.shoot():
+                    for obake in self.obake_list:
+                        obake.shot(self.shoot_detector.shoot_position())
+            if self.reload_detector.is_reload():
+                self.bullet_manger.reload()
 
-        for obake in self.obake_list:
-            obake.update()
+            for obake in self.obake_list:
+                obake.update()
 
-        self.obake_list = [obake for obake in self.obake_list if obake.is_active()]
-        if len(self.obake_list) == 0:
-            obake_list = self.wave.spawn()
-            if obake_list:
-                self.obake_list.extend(obake_list)
-            else:
-                # end game
-                pass
+            self.obake_list = [obake for obake in self.obake_list if obake.is_active()]
+            if len(self.obake_list) == 0:
+                obake_list = self.wave.spawn()
+                if obake_list:
+                    self.obake_list.extend(obake_list)
+                else:
+                    # end game
+                    pass
 
-        Score.update()
-        ObakeDeadParticle.update()
+            Score.update()
+            ObakeDeadParticle.update()
 
 
     def draw(self) -> None:
         pyxel.cls(0)
-        BackGround.draw()
-        for hand in self.hands:
-            hand.draw()
-        shoot_position = self.shoot_detector.shoot_position()
-        if shoot_position is not None:
-            pyxel.circ(shoot_position[0] * WINDOW_W, shoot_position[1] * WINDOW_H, 3, 11)
-        for obake in self.obake_list:
-            obake.draw()
-        self.bullet_manger.draw()
-        Score.draw()
-        ObakeDeadParticle.draw()
+        if self.status == "title":
+            self.title_menu.draw()
+        if self.status == "play":
+            BackGround.draw()
+            for hand in self.hands:
+                hand.draw()
+            shoot_position = self.shoot_detector.shoot_position()
+            if shoot_position is not None:
+                pyxel.circ(shoot_position[0] * WINDOW_W, shoot_position[1] * WINDOW_H, 3, 11)
+            for obake in self.obake_list:
+                obake.draw()
+            self.bullet_manger.draw()
+            Score.draw()
+            ObakeDeadParticle.draw()
 
 
 App()
