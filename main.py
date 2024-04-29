@@ -667,6 +667,7 @@ class TitleImage:
     def draw(self) -> None:
         pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
 
+
 class StartImage:
     ASSET_FILE = './assets/start.png'
     I = 2
@@ -686,6 +687,7 @@ class StartImage:
     def draw(self) -> None:
         pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
 
+
 class SensImage:
     ASSET_FILE = './assets/sens.png'
     I = 2
@@ -704,6 +706,7 @@ class SensImage:
 
     def draw(self) -> None:
         pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
+
 
 class UpDownButtonImage:
     ASSET_FILE = './assets/up_down_button.png'
@@ -726,17 +729,16 @@ class UpDownButtonImage:
         else:
             pyxel.blt(x, y, self.I, self.U, self.V, self.BUTTON_W, self.H)
 
+
 class UpDownButton:
     W = UpDownButtonImage.BUTTON_W
     H = UpDownButtonImage.H
-    up_down_image = None
 
     def __init__(self, x, y, up: bool) -> None:
         self.x = x
         self.y = y
         self.up = up
-        if self.up_down_image is None:
-            self.load()
+        self.up_down_image = UpDownButtonImage()
 
     def collision(self, x, y) -> bool:
         if self.x <= x <= self.x + self.W:
@@ -747,17 +749,8 @@ class UpDownButton:
     def draw(self) -> None:
         self.up_down_image.draw(self.x, self.y, self.up)
 
-    @classmethod
-    def load(cls):
-        if cls.up_down_image is None:
-            cls.up_down_image = UpDownButtonImage()
 
 class TitleMenu:
-    title_image = None
-    start_image = None
-    sens_image = None
-    large_number_image = None
-
     NUMBER_Y = SensImage.Y + SensImage.H // 2 - LargeNumberImage.H // 2 
     BUTTON_Y = SensImage.Y + SensImage.H // 2 - LargeNumberImage.H // 2
     DOWN_BUTTON_X = WINDOW_W // 2 + 10
@@ -771,6 +764,10 @@ class TitleMenu:
         self.sens = init_sens
         self.up_button = UpDownButton(self.UP_BUTTON_X, self.BUTTON_Y, True)
         self.down_button = UpDownButton(self.DOWN_BUTTON_X, self.BUTTON_Y,False)
+        self.title_image = TitleImage()
+        self.start_image = StartImage()
+        self.sens_image = SensImage()
+        self.large_number_image = LargeNumberImage()
 
     def update(self) -> None:
         pass
@@ -792,15 +789,6 @@ class TitleMenu:
         self.sens = max(self.sens - self.SENS_RESOLUTION, self.MIN_SENS)
 
     def draw(self) -> None:
-        if self.title_image is None:
-            self.title_image = TitleImage()
-        if self.start_image is None:
-            self.start_image = StartImage()
-        if self.sens_image is None:
-            self.sens_image = SensImage()
-        if self.large_number_image is None:
-            self.large_number_image = LargeNumberImage()
-
         self.title_image.draw()
         self.start_image.draw()
         self.sens_image.draw()
