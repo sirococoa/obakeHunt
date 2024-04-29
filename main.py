@@ -803,6 +803,25 @@ class TitleMenu:
         self.large_number_image.draw(number_x, self.NUMBER_Y, sens)
 
 
+class Result:
+    MARGIN_X = 50
+    MARGIN_Y = 20
+    FLAME_X = MARGIN_X
+    FLAME_Y = MARGIN_Y
+    FLAME_W = WINDOW_W - 2*MARGIN_X
+    FLAME_H = WINDOW_H - 2*MARGIN_Y
+
+    def __init__(self) -> None:
+        pass
+
+    def update(self) -> None:
+        pass
+
+    def draw(self) -> None:
+        pyxel.rect(self.FLAME_X, self.FLAME_Y, self.FLAME_W, self.FLAME_H, 0)
+        pyxel.text(WINDOW_W // 2, WINDOW_H // 2, str(Score.total), 7)
+
+
 class App:
     def __init__(self) -> None:
         pyxel.init(WINDOW_W, WINDOW_H)
@@ -817,6 +836,7 @@ class App:
         ObakeDeadParticle.load()
         self.wave = Wave()
         self.title_menu = TitleMenu(self.sens)
+        self.result = Result()
         self.status = "title"
         while True:
             videoWidth = js.videoWidth
@@ -866,11 +886,13 @@ class App:
                 if obake_list:
                     self.obake_list.extend(obake_list)
                 else:
-                    # end game
-                    pass
+                    self.status = 'result'
 
             Score.update()
             ObakeDeadParticle.update()
+
+        if self.status == 'result':
+            self.result.update()
 
 
     def draw(self) -> None:
@@ -889,6 +911,9 @@ class App:
             self.bullet_manger.draw()
             Score.draw()
             ObakeDeadParticle.draw()
+        if self.status == 'result':
+            BackGround.draw()
+            self.result.draw()
 
 
 App()
