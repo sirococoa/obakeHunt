@@ -519,6 +519,33 @@ class NumberImage:
             x = x + self.NUMBER_W
 
 
+class LargeNumberImage:
+    ASSET_FILE = './assets/large_number.png'
+    I = 1
+    U = 0
+    V = 87
+    W = 176
+    NUMBER_W = 16 # NUMBER_W * 11 = W
+    H = 28
+    COLKEY = 0
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self, x: int, y: int, number: int) -> None:
+        for digit in str(number):
+            if digit == '.':
+                u = self.U + self.NUMBER_W * 10
+            else:
+                u = self.U + self.NUMBER_W * int(digit)
+            w = self.NUMBER_W
+            pyxel.blt(x, y, self.I, u, self.V, w, self.H, self.COLKEY)
+            x = x + self.NUMBER_W
+
+
 class Score:
     score_list = []
     total = 0
@@ -682,6 +709,10 @@ class TitleMenu:
     title_image = None
     start_image = None
     sens_image = None
+    large_number_image = None
+
+    def __init__(self, init_sens: float) -> None:
+        self.sens = init_sens
 
     def update(self) -> None:
         pass
@@ -693,9 +724,14 @@ class TitleMenu:
             self.start_image = StartImage()
         if self.sens_image is None:
             self.sens_image = SensImage()
+        if self.large_number_image is None:
+            self.large_number_image = LargeNumberImage()
         self.title_image.draw()
         self.start_image.draw()
         self.sens_image.draw()
+        x = WINDOW_W // 2 + 30
+        y = self.sens_image.Y + self.sens_image.H // 2 - self.large_number_image.H // 2
+        self.large_number_image.draw(x, y, self.sens)
 
 
 class App:
@@ -710,7 +746,7 @@ class App:
         Score.load()
         ObakeDeadParticle.load()
         self.wave = Wave()
-        self.title_menu = TitleMenu()
+        self.title_menu = TitleMenu(self.senshi)
         self.status = "title"
         while True:
             videoWidth = js.videoWidth
