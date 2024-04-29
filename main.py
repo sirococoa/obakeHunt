@@ -726,18 +726,70 @@ class UpDownButtonImage:
         else:
             pyxel.blt(x, y, self.I, self.U, self.V, self.BUTTON_W, self.H)
 
+class UpDownButton:
+    W = UpDownButtonImage.BUTTON_W
+    H = UpDownButtonImage.H
+    up_down_image = None
+
+    def __init__(self, x, y, up: bool) -> None:
+        self.x = x
+        self.y = y
+        self.up = up
+        if self.up_down_image is None:
+            self.load()
+
+    def collision(self, x, y) -> bool:
+        if self.x <= x <= self.x + self.W:
+            if self.y <= y <= self.y + self.H:
+                return True
+        return False
+    
+    def draw(self) -> None:
+        self.up_down_image.draw(self.x, self.y, self.up)
+
+    @classmethod
+    def load(cls):
+        if cls.up_down_image is None:
+            cls.up_down_image = UpDownButtonImage()
+
 class TitleMenu:
     title_image = None
     start_image = None
     sens_image = None
     large_number_image = None
-    up_down_image = None
+
+    NUMBER_Y = SensImage.Y + SensImage.H // 2 - LargeNumberImage.H // 2 
+    BUTTON_Y = SensImage.Y + SensImage.H // 2 - LargeNumberImage.H // 2
+    DOWN_BUTTON_X = WINDOW_W // 2 + 10
+    UP_BUTTON_X = WINDOW_W - 10 - UpDownButton.W
+
+    MAX_SENS = 1
+    MIN_SENS = 0.1
+    SENS_RESOLUTION = 0.1
 
     def __init__(self, init_sens: float) -> None:
         self.sens = init_sens
+        self.up_button = UpDownButton(self.UP_BUTTON_X, self.BUTTON_Y, True)
+        self.down_button = UpDownButton(self.DOWN_BUTTON_X, self.BUTTON_Y,False)
 
     def update(self) -> None:
         pass
+
+    def select(self, x, y) -> bool:
+        if StartImage.X <= x <= StartImage.X + StartImage.W:
+            if StartImage.Y <= y <= StartImage.Y + StartImage.H:
+                return True
+        if self.up_button.collision(x, y):
+            self.sens_increment()
+        if self.down_button.collision(x, y):
+            self.sens_decrement()
+        return False
+
+    def sens_increment(self):
+        self.sens = min(self.sens + self.SENS_RESOLUTION, self.MAX_SENS)
+
+    def sens_decrement(self):
+        self.sens = max(self.sens - self.SENS_RESOLUTION, self.MIN_SENS)
 
     def draw(self) -> None:
         if self.title_image is None:
@@ -748,25 +800,25 @@ class TitleMenu:
             self.sens_image = SensImage()
         if self.large_number_image is None:
             self.large_number_image = LargeNumberImage()
-        if self.up_down_image is None:
-            self.up_down_image = UpDownButtonImage()
+
         self.title_image.draw()
         self.start_image.draw()
         self.sens_image.draw()
         
-        sens = str(self.sens)
-        y = self.sens_image.Y + self.sens_image.H // 2 - self.large_number_image.H // 2
-        down_x = WINDOW_W // 2 + 10
-        self.up_down_image.draw(down_x, y, False)
-        up_x = WINDOW_W - 10 - self.up_down_image.BUTTON_W
-        self.up_down_image.draw(up_x, y, True)
-        number_x = down_x + self.up_down_image.BUTTON_W + ((up_x - down_x - self.up_down_image.BUTTON_W) - len(sens)*self.large_number_image.NUMBER_W) // 2
-        self.large_number_image.draw(number_x, y, sens)
+        self.up_button.draw()
+        self.down_button.draw()
+
+        sens = "{:.1f}".format(self.sens)
+        number_x = self.DOWN_BUTTON_X + UpDownButton.W + (
+            (self.UP_BUTTON_X - self.DOWN_BUTTON_X - UpDownButton.W) - len(sens)*LargeNumberImage.NUMBER_W
+            ) // 2
+        self.large_number_image.draw(number_x, self.NUMBER_Y, sens)
 
 
 class App:
     def __init__(self) -> None:
         pyxel.init(WINDOW_W, WINDOW_H)
+        pyxel.mouse(True)
         self.hands = []
         self.senshi = 0.5
         self.shoot_detector = ShootDetector()
@@ -791,10 +843,15 @@ class App:
     def update(self) -> None:
         if self.status == "title":
             self.title_menu.update()
+            if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
+                if self.title_menu.select(pyxel.mouse_x, pyxel.mouse_y):
+                    self.status = "play"
+
         if self.status == "play":
             if pyxel.btn(pyxel.KEY_R):
                 self.obake_list = []
                 self.wave.reset()
+                self.status = "title"
                 return
 
             landmarks = js.getLandmarks().to_py()
