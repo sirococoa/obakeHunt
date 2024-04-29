@@ -659,9 +659,29 @@ class StartImage:
     def draw(self) -> None:
         pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
 
+class SensImage:
+    ASSET_FILE = './assets/sens.png'
+    I = 2
+    U = 127
+    V = 108
+    W = 98
+    H = 28
+    X = (WINDOW_W // 2 - W) // 2
+    Y = StartImage.Y + StartImage.H + 20
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self) -> None:
+        pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
+
 class TitleMenu:
     title_image = None
     start_image = None
+    sens_image = None
 
     def update(self) -> None:
         pass
@@ -671,8 +691,11 @@ class TitleMenu:
             self.title_image = TitleImage()
         if self.start_image is None:
             self.start_image = StartImage()
+        if self.sens_image is None:
+            self.sens_image = SensImage()
         self.title_image.draw()
         self.start_image.draw()
+        self.sens_image.draw()
 
 
 class App:
