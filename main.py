@@ -20,7 +20,7 @@ class Hand:
     TARGET_SIZE = 3
     TARGET_COLOR = 8
 
-    def __init__(self, landmarks: Any, aspect: float, senshi: float) -> None:
+    def __init__(self, landmarks: Any, aspect: float, sens: float) -> None:
         self.points = []
         for landmark in landmarks:
             x, y, z = landmark['x'], landmark['y'], landmark['z']
@@ -29,7 +29,7 @@ class Hand:
             else:
                 self.points.append(numpy.asarray((0.5 - (x - 0.5) * aspect, y, z)))
 
-        self.target = self.calc_target(senshi)
+        self.target = self.calc_target(sens)
 
     def draw(self) -> None:
         for point in self.points:
@@ -60,8 +60,8 @@ class Hand:
     def ring_finger_pip_point(self) -> numpy.ndarray:
         return self.points[14]
 
-    def calc_target(self, senshi) -> numpy.ndarray:
-        target_vector = self.index_finger_base() + self.index_finger_vector() / self.thumb_length() * senshi
+    def calc_target(self, sens) -> numpy.ndarray:
+        target_vector = self.index_finger_base() + self.index_finger_vector() / self.thumb_length() * sens
         return target_vector[:2]
 
 
@@ -820,7 +820,7 @@ class App:
         pyxel.init(WINDOW_W, WINDOW_H)
         pyxel.mouse(True)
         self.hands = []
-        self.senshi = 0.5
+        self.sens = 0.5
         self.shoot_detector = ShootDetector()
         self.reload_detector = ReloadDetector()
         self.obake_list = []
@@ -828,7 +828,7 @@ class App:
         Score.load()
         ObakeDeadParticle.load()
         self.wave = Wave()
-        self.title_menu = TitleMenu(self.senshi)
+        self.title_menu = TitleMenu(self.sens)
         self.status = "title"
         while True:
             videoWidth = js.videoWidth
@@ -855,7 +855,7 @@ class App:
                 return
 
             landmarks = js.getLandmarks().to_py()
-            self.hands = [Hand(landmark, self.videoAspect, self.senshi) for landmark in landmarks]
+            self.hands = [Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks]
             if self.hands:
                 self.shoot_detector.update(self.hands[0].target)
                 self.reload_detector.update(self.hands[0])
