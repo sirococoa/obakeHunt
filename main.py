@@ -535,8 +535,8 @@ class LargeNumberImage:
     def load(self) -> None:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
 
-    def draw(self, x: int, y: int, number: int) -> None:
-        for digit in str(number):
+    def draw(self, x: int, y: int, number: str) -> None:
+        for digit in number:
             if digit == '.':
                 u = self.U + self.NUMBER_W * 10
             else:
@@ -705,11 +705,33 @@ class SensImage:
     def draw(self) -> None:
         pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
 
+class UpDownButtonImage:
+    ASSET_FILE = './assets/up_down_button.png'
+    I = 2
+    U = 0
+    V = 136
+    W = 32
+    H = 28
+    BUTTON_W = 16
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self, x, y, up: bool) -> None:
+        if up:
+            pyxel.blt(x, y, self.I, self.U + self.BUTTON_W, self.V, self.BUTTON_W, self.H)
+        else:
+            pyxel.blt(x, y, self.I, self.U, self.V, self.BUTTON_W, self.H)
+
 class TitleMenu:
     title_image = None
     start_image = None
     sens_image = None
     large_number_image = None
+    up_down_image = None
 
     def __init__(self, init_sens: float) -> None:
         self.sens = init_sens
@@ -726,12 +748,20 @@ class TitleMenu:
             self.sens_image = SensImage()
         if self.large_number_image is None:
             self.large_number_image = LargeNumberImage()
+        if self.up_down_image is None:
+            self.up_down_image = UpDownButtonImage()
         self.title_image.draw()
         self.start_image.draw()
         self.sens_image.draw()
-        x = WINDOW_W // 2 + 30
+        
+        sens = str(self.sens)
         y = self.sens_image.Y + self.sens_image.H // 2 - self.large_number_image.H // 2
-        self.large_number_image.draw(x, y, self.sens)
+        down_x = WINDOW_W // 2 + 10
+        self.up_down_image.draw(down_x, y, False)
+        up_x = WINDOW_W - 10 - self.up_down_image.BUTTON_W
+        self.up_down_image.draw(up_x, y, True)
+        number_x = down_x + self.up_down_image.BUTTON_W + ((up_x - down_x - self.up_down_image.BUTTON_W) - len(sens)*self.large_number_image.NUMBER_W) // 2
+        self.large_number_image.draw(number_x, y, sens)
 
 
 class App:
