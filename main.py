@@ -640,9 +640,28 @@ class TitleImage:
     def draw(self) -> None:
         pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
 
+class StartImage:
+    ASSET_FILE = './assets/start.png'
+    I = 2
+    U = 0
+    V = 108
+    W = 127
+    H = 28
+    X = (WINDOW_W - W) // 2
+    Y = TitleImage.Y + TitleImage.H + 10
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self) -> None:
+        pyxel.blt(self.X, self.Y, self.I, self.U, self.V, self.W, self.H)
 
 class TitleMenu:
     title_image = None
+    start_image = None
 
     def update(self) -> None:
         pass
@@ -650,7 +669,10 @@ class TitleMenu:
     def draw(self) -> None:
         if self.title_image is None:
             self.title_image = TitleImage()
+        if self.start_image is None:
+            self.start_image = StartImage()
         self.title_image.draw()
+        self.start_image.draw()
 
 
 class App:
