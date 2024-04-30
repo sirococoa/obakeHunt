@@ -62,6 +62,7 @@ if (hasGetUserMedia()) {
               min: 720,
               max: 1080,
             },
+            facingMode: 'user'
         }
     };
 
