@@ -480,6 +480,10 @@ class BulletManager:
         if self.reload_count == self.RELOAD_TIME and not self.is_max_of_ammo():
             self.reload_count = 0
 
+    def reset(self) -> None:
+        self.bullet_num = self.BULLET_MAX_NUM
+        self.reload_count = self.RELOAD_TIME
+
     def is_reloading(self) -> bool:
         return self.reload_count < self.RELOAD_TIME
 
@@ -839,30 +843,75 @@ class ScoreImage:
         pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H)
 
 
+class BackButtonImage:
+    ASSET_FILE = './assets/back_button.png'
+    I = 2
+    U = 135
+    V = 164
+    W = 36
+    H = 36
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self, x, y) -> None:
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H)
+
+
+class BackButton:
+    W = BackButtonImage.W
+    H = BackButtonImage.H
+
+    def __init__(self, x, y) -> None:
+        self.x = x
+        self.y = y
+        self.back_button_image = BackButtonImage()
+
+    def collision(self, x, y) -> bool:
+        if self.x <= x <= self.x + self.W:
+            if self.y <= y <= self.y + self.H:
+                return True
+        return False
+    
+    def draw(self) -> None:
+        self.back_button_image.draw(self.x, self.y)
+
+
 class Result:
     FINISH_X = (WINDOW_W - FinishImage.W) // 2
     FINISH_Y = WINDOW_H // 4
 
     SCORE_Y = WINDOW_H // 2
 
+    BACK_BUTTON_X = (WINDOW_W - BackButton.W) // 2
+    BACK_BUTTON_Y = WINDOW_H // 4 * 3
+
     def __init__(self) -> None:
         self.finish_image = FinishImage()
         self.score_image = ScoreImage()
         self.large_number_image = LargeNumberImage()
+        self.back_button = BackButton(self.BACK_BUTTON_X, self.BACK_BUTTON_Y)
 
     def update(self) -> None:
         pass
 
+    def select(self, x, y) -> bool:
+        return self.back_button.collision(x, y)
+
     def draw(self) -> None:
         self.finish_image.draw(self.FINISH_X, self.FINISH_Y)
 
-        
         score = str(Score.total)
         score_image_and_score_width = ScoreImage.W + LargeNumberImage.NUMBER_W*(len(score) + 1)
         score_image_x = (WINDOW_H - score_image_and_score_width) // 2
         score_x = score_image_x + ScoreImage.W + LargeNumberImage.NUMBER_W
         self.score_image.draw(score_image_x, self.SCORE_Y)
         self.large_number_image.draw(score_x, self.SCORE_Y, score)
+
+        self.back_button.draw()
 
 
 class App:
@@ -900,8 +949,7 @@ class App:
 
         if self.status == "play":
             if pyxel.btn(pyxel.KEY_R):
-                self.obake_list = []
-                self.wave.reset()
+                self.reset()
                 self.status = "title"
                 return
 
@@ -936,7 +984,18 @@ class App:
 
         if self.status == 'result':
             self.result.update()
+            if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
+                if self.result.select(pyxel.mouse_x, pyxel.mouse_y):
+                    self.reset()
+                    self.status = "title"
 
+    def reset(self) -> None:
+        self.obake_list = []
+        ObakeDeadParticle.reset()
+        self.bullet_manger.reset()
+        self.wave.reset()
+        Score.reset()
+        self.shoot_detector = ShootDetector()
 
     def draw(self) -> None:
         pyxel.cls(0)
