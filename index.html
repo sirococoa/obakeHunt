@@ -21,10 +21,18 @@ Modifications copyright (C) 2024 sirococoa.
     <script type="module" src="src/main.js"></script>
   
     <script src="https://cdn.jsdelivr.net/gh/kitao/pyxel/wasm/pyxel.js"></script>
+    <style>
+      video {
+        visibility: hidden;
+        transform: rotateY(180deg);
+        -webkit-transform: rotateY(180deg);
+        -moz-transform: rotateY(180deg);
+      }
+    </style>
   </head>
   
   <body>
-    <video id="webcam" style="visibility: hidden" autoplay playsinline></video>
+    <video id="webcam" autoplay playsinline></video>
     <pyxel-run root="." name="main.py" packages="numpy,scipy"></pyxel-run>
   </body>
 </html>
