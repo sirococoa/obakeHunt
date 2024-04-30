@@ -821,18 +821,48 @@ class FinishImage:
         pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H)
 
 
+class ScoreImage:
+    ASSET_FILE = './assets/score.png'
+    I = 2
+    U = 0
+    V = 195
+    W = 126
+    H = 28
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self, x, y) -> None:
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H)
+
+
 class Result:
     FINISH_X = (WINDOW_W - FinishImage.W) // 2
     FINISH_Y = WINDOW_H // 4
 
+    SCORE_Y = WINDOW_H // 2
+
     def __init__(self) -> None:
         self.finish_image = FinishImage()
+        self.score_image = ScoreImage()
+        self.large_number_image = LargeNumberImage()
 
     def update(self) -> None:
         pass
 
     def draw(self) -> None:
         self.finish_image.draw(self.FINISH_X, self.FINISH_Y)
+
+        
+        score = str(Score.total)
+        score_image_and_score_width = ScoreImage.W + LargeNumberImage.NUMBER_W*(len(score) + 1)
+        score_image_x = (WINDOW_H - score_image_and_score_width) // 2
+        score_x = score_image_x + ScoreImage.W + LargeNumberImage.NUMBER_W
+        self.score_image.draw(score_image_x, self.SCORE_Y)
+        self.large_number_image.draw(score_x, self.SCORE_Y, score)
 
 
 class App:
