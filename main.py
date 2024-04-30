@@ -989,6 +989,10 @@ class App:
             if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
                 if self.title_menu.select(pyxel.mouse_x, pyxel.mouse_y):
                     self.status = "play"
+            point = self.point_detector.selected_point()
+            if point:
+                if self.title_menu.select(point[0], point[1]):
+                    self.status = "play"
 
         if self.status == "play":
             if pyxel.btn(pyxel.KEY_R):
@@ -1027,8 +1031,17 @@ class App:
 
         if self.status == 'result':
             self.result.update()
+            landmarks = js.getLandmarks().to_py()
+            self.hands = [Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks]
+            if self.hands:
+                self.point_detector.update(self.hands[0])
             if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
                 if self.result.select(pyxel.mouse_x, pyxel.mouse_y):
+                    self.reset()
+                    self.status = "title"
+            point = self.point_detector.selected_point()
+            if point:
+                if self.result.select(point[0], point[1]):
                     self.reset()
                     self.status = "title"
 
@@ -1061,6 +1074,9 @@ class App:
             ObakeDeadParticle.draw()
         if self.status == 'result':
             self.result.draw()
+            for hand in self.hands:
+                hand.draw()
+            self.point_detector.draw()
 
 
 App()
