@@ -803,23 +803,36 @@ class TitleMenu:
         self.large_number_image.draw(number_x, self.NUMBER_Y, sens)
 
 
-class Result:
-    MARGIN_X = 50
-    MARGIN_Y = 20
-    FLAME_X = MARGIN_X
-    FLAME_Y = MARGIN_Y
-    FLAME_W = WINDOW_W - 2*MARGIN_X
-    FLAME_H = WINDOW_H - 2*MARGIN_Y
+class FinishImage:
+    ASSET_FILE = './assets/finish.png'
+    I = 2
+    U = 0
+    V = 164
+    W = 135
+    H = 28
 
     def __init__(self) -> None:
-        pass
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self, x, y) -> None:
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H)
+
+
+class Result:
+    FINISH_X = (WINDOW_W - FinishImage.W) // 2
+    FINISH_Y = WINDOW_H // 4
+
+    def __init__(self) -> None:
+        self.finish_image = FinishImage()
 
     def update(self) -> None:
         pass
 
     def draw(self) -> None:
-        pyxel.rect(self.FLAME_X, self.FLAME_Y, self.FLAME_W, self.FLAME_H, 0)
-        pyxel.text(WINDOW_W // 2, WINDOW_H // 2, str(Score.total), 7)
+        self.finish_image.draw(self.FINISH_X, self.FINISH_Y)
 
 
 class App:
@@ -912,7 +925,6 @@ class App:
             Score.draw()
             ObakeDeadParticle.draw()
         if self.status == 'result':
-            BackGround.draw()
             self.result.draw()
 
 
