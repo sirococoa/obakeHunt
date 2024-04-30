@@ -987,7 +987,6 @@ class App:
             if enable_webcam_flag and enable_detection_flag:
                 videoWidth = js.videoWidth
                 videoHeight = js.videoHeight
-                print(videoWidth, videoHeight)
                 self.videoAspect = videoWidth / videoHeight
                 self.connect_video_flag = True
             return
