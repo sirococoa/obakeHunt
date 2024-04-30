@@ -1076,9 +1076,6 @@ class App:
             BackGround.draw()
             for hand in self.hands:
                 hand.draw()
-            shoot_position = self.shoot_detector.shoot_position()
-            if shoot_position is not None:
-                pyxel.circ(shoot_position[0] * WINDOW_W, shoot_position[1] * WINDOW_H, 3, 11)
             for obake in self.obake_list:
                 obake.draw()
             self.bullet_manger.draw()
