@@ -133,6 +133,44 @@ class ReloadDetector:
         return self.reload_flag
 
 
+class PointDetector:
+    DETECTION_TIME = 30
+    DETECTION_DETECTION_ACCURACY = 0.05
+
+    RADIUS = 20
+    DETECTION_DRAW_START_TIME = 10
+
+    def __init__(self) -> None:
+        self.point_history = deque(maxlen=self.DETECTION_TIME)
+
+    def update(self, hand: Hand) -> None:
+        point = hand.index_finger_tip_point()
+        self.point_history.append([point[0], point[1]])
+
+    def selected_point(self) -> list[int]:
+        if len(self.point_history) != self.DETECTION_TIME:
+            return []
+        current = self.point_history[-1]
+        for point in self.point_history:
+            if distance.euclidean(current, point) > self.DETECTION_DETECTION_ACCURACY:
+                return []
+        return [int(current[0] * WINDOW_W), int(current[1] * WINDOW_H)]
+
+    def draw(self) -> None:
+        if len(self.point_history) != self.DETECTION_TIME:
+            return
+        current = self.point_history[-1]
+        for i in range(len(self.point_history)):
+            point = self.point_history[-(i + 1)]
+            if distance.euclidean(current, point) > self.DETECTION_DETECTION_ACCURACY:
+                break
+        if i < self.DETECTION_DRAW_START_TIME:
+            return
+        pyxel.circb(int(current[0] * WINDOW_W), int(current[1] * WINDOW_H), self.RADIUS, 8)
+        r = int((i - self.DETECTION_DRAW_START_TIME) / (self.DETECTION_TIME - self.DETECTION_DRAW_START_TIME) * self.RADIUS)
+        pyxel.circ(int(current[0] * WINDOW_W), int(current[1] * WINDOW_H), r, 8)
+
+
 class ObakeDeadImage:
     ASSET_FILE = './assets/obake_dead.png'
     I = 1
@@ -922,6 +960,7 @@ class App:
         self.sens = 0.5
         self.shoot_detector = ShootDetector()
         self.reload_detector = ReloadDetector()
+        self.point_detector = PointDetector()
         self.obake_list = []
         self.bullet_manger = BulletManager()
         Score.load()
@@ -943,6 +982,10 @@ class App:
     def update(self) -> None:
         if self.status == "title":
             self.title_menu.update()
+            landmarks = js.getLandmarks().to_py()
+            self.hands = [Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks]
+            if self.hands:
+                self.point_detector.update(self.hands[0])
             if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
                 if self.title_menu.select(pyxel.mouse_x, pyxel.mouse_y):
                     self.status = "play"
@@ -1001,6 +1044,9 @@ class App:
         pyxel.cls(0)
         if self.status == "title":
             self.title_menu.draw()
+            for hand in self.hands:
+                hand.draw()
+            self.point_detector.draw()
         if self.status == "play":
             BackGround.draw()
             for hand in self.hands:
