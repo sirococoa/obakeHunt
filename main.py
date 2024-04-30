@@ -137,23 +137,31 @@ class PointDetector:
     DETECTION_TIME = 30
     DETECTION_DETECTION_ACCURACY = 0.05
 
+    POINT_INTERVAL = 20
+
     RADIUS = 20
     DETECTION_DRAW_START_TIME = 10
 
     def __init__(self) -> None:
         self.point_history = deque(maxlen=self.DETECTION_TIME)
+        self.count = self.POINT_INTERVAL
 
     def update(self, hand: Hand) -> None:
+        if self.count < self.POINT_INTERVAL:
+            self.count += 1
         point = hand.index_finger_tip_point()
         self.point_history.append([point[0], point[1]])
 
     def selected_point(self) -> list[int]:
         if len(self.point_history) != self.DETECTION_TIME:
             return []
+        if self.count < self.POINT_INTERVAL:
+            return []
         current = self.point_history[-1]
         for point in self.point_history:
             if distance.euclidean(current, point) > self.DETECTION_DETECTION_ACCURACY:
                 return []
+        self.count = 0
         return [int(current[0] * WINDOW_W), int(current[1] * WINDOW_H)]
 
     def draw(self) -> None:
