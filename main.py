@@ -977,17 +977,20 @@ class App:
         self.title_menu = TitleMenu(self.sens)
         self.result = Result()
         self.status = "title"
-        while True:
-            videoWidth = js.videoWidth
-            videoHeight = js.videoHeight
-            if videoHeight != 0 and videoWidth != 0:
-                self.videoAspect = videoWidth / videoHeight
-                break
-            else:
-                time.sleep(0.1)
+        self.connect_video_flag = False
         pyxel.run(self.update, self.draw)
 
     def update(self) -> None:
+        if not self.connect_video_flag:
+            enable_webcam_flag = js.webcamRunning
+            enable_detection_flag = js.detectionRunning
+            if enable_webcam_flag and enable_detection_flag:
+                videoWidth = js.videoWidth
+                videoHeight = js.videoHeight
+                print(videoWidth, videoHeight)
+                self.videoAspect = videoWidth / videoHeight
+                self.connect_video_flag = True
+            return
         if self.status == "title":
             self.title_menu.update()
             landmarks = js.getLandmarks().to_py()
@@ -1063,6 +1066,8 @@ class App:
 
     def draw(self) -> None:
         pyxel.cls(0)
+        if not self.connect_video_flag:
+            pyxel.text(WINDOW_W // 4, WINDOW_H - 10, "Waiting for camera to connect", 7)
         if self.status == "title":
             self.title_menu.draw()
             for hand in self.hands:

@@ -20,8 +20,8 @@ import {
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
 let handLandmarker = undefined;
-let runningMode = "IMAGE";
-let webcamRunning = false;
+window.webcamRunning = false;
+window.detectionRunning = false
 
 window.videoWidth = 0;
 window.videoHeight = 0;
@@ -41,7 +41,7 @@ const createHandLandmarker = async () => {
             modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
             delegate: "GPU"
         },
-        runningMode: runningMode,
+        runningMode: "VIDEO",
         numHands: 1
     });
 };
@@ -70,19 +70,15 @@ if (hasGetUserMedia()) {
         video.addEventListener("loadeddata", predictWebcam);
     });
 
-    webcamRunning = true;
+    window.webcamRunning = true;
 } else {
     console.warn("getUserMedia() is not supported by your browser");
 }
 
 let lastVideoTime = -1;
 let results = undefined;
-console.log(video);
 async function predictWebcam() {
-    if (runningMode === "IMAGE") {
-        runningMode = "VIDEO";
-        await handLandmarker.setOptions({ runningMode: "VIDEO" });
-    }
+    window.detectionRunning = true
 
     window.videoWidth = video.videoWidth;
     window.videoHeight = video.videoHeight;
@@ -96,7 +92,7 @@ async function predictWebcam() {
         landmarks = results.landmarks;
     }
 
-    if (webcamRunning === true) {
+    if (window.webcamRunning === true) {
         window.requestAnimationFrame(predictWebcam);
     }
 }
