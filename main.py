@@ -997,6 +997,11 @@ class App:
                 self.videoAspect = videoWidth / videoHeight
                 self.connect_video_flag = True
             return
+        else:
+            videoWidth = js.videoWidth
+            videoHeight = js.videoHeight
+            self.videoAspect = videoWidth / videoHeight
+
         if self.status == "title":
             self.title_menu.update()
             landmarks = js.getLandmarks().to_py()
@@ -1074,11 +1079,11 @@ class App:
         pyxel.cls(0)
         if not self.connect_video_flag:
             pyxel.text(WINDOW_W // 4, WINDOW_H - 10, "Waiting for camera to connect", 7)
-        else:
-            videoWidth = js.videoWidth
-            videoHeight = js.videoHeight
-            pyxel.text(WINDOW_W // 4, WINDOW_H - 20, "{} {}".format(videoWidth, videoHeight), 7)
         if self.status == "title":
+            if self.connect_video_flag:
+                videoWidth = js.videoWidth
+                videoHeight = js.videoHeight
+                pyxel.text(WINDOW_W // 4, WINDOW_H - 10, "camera {}x{}".format(videoWidth, videoHeight), 7)
             self.title_menu.draw()
             for hand in self.hands:
                 hand.draw()
