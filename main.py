@@ -1192,7 +1192,11 @@ class App:
             if self.connect_video_flag:
                 videoWidth = js.videoWidth
                 videoHeight = js.videoHeight
-                pyxel.text(WINDOW_W // 4, WINDOW_H - 10, 'camera {}x{}'.format(videoWidth, videoHeight), 7)
+                pyxel.text(WINDOW_W // 4, WINDOW_H - 10, 'CAMERA {}x{}'.format(videoWidth, videoHeight), 7)
+            if len(self.hands) == 0:
+                pyxel.text(WINDOW_W // 2 + 10, WINDOW_H - 10, 'HAND: not found', 7)
+            else:
+                pyxel.text(WINDOW_W // 2 + 10, WINDOW_H - 10, 'HAND: found', 7)
             self.title_menu.draw()
             for hand in self.hands:
                 hand.draw()
