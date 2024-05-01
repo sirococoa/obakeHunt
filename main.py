@@ -853,7 +853,7 @@ class TitleMenu:
         self.up_button.draw()
         self.down_button.draw()
 
-        sens = "{:.1f}".format(self.sens)
+        sens = '{:.1f}'.format(self.sens)
         number_x = self.DOWN_BUTTON_X + UpDownButton.W + (
             (self.UP_BUTTON_X - self.DOWN_BUTTON_X - UpDownButton.W) - len(sens)*LargeNumberImage.NUMBER_W
             ) // 2
@@ -983,7 +983,7 @@ class App:
         self.wave = Wave()
         self.title_menu = TitleMenu(self.sens)
         self.result = Result()
-        self.status = "title"
+        self.status = 'title'
         self.connect_video_flag = False
         pyxel.run(self.update, self.draw)
 
@@ -1002,7 +1002,7 @@ class App:
             videoHeight = js.videoHeight
             self.videoAspect = videoWidth / videoHeight
 
-        if self.status == "title":
+        if self.status == 'title':
             self.title_menu.update()
             landmarks = js.getLandmarks().to_py()
             self.hands = [Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks]
@@ -1010,16 +1010,16 @@ class App:
                 self.point_detector.update(self.hands[0])
             if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
                 if self.title_menu.select(pyxel.mouse_x, pyxel.mouse_y):
-                    self.status = "play"
+                    self.status = 'play'
             point = self.point_detector.selected_point()
             if point:
                 if self.title_menu.select(point[0], point[1]):
-                    self.status = "play"
+                    self.status = 'play'
 
-        if self.status == "play":
+        if self.status == 'play':
             if pyxel.btn(pyxel.KEY_R):
                 self.reset()
-                self.status = "title"
+                self.status = 'title'
                 return
 
             landmarks = js.getLandmarks().to_py()
@@ -1060,12 +1060,12 @@ class App:
             if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
                 if self.result.select(pyxel.mouse_x, pyxel.mouse_y):
                     self.reset()
-                    self.status = "title"
+                    self.status = 'title'
             point = self.point_detector.selected_point()
             if point:
                 if self.result.select(point[0], point[1]):
                     self.reset()
-                    self.status = "title"
+                    self.status = 'title'
 
     def reset(self) -> None:
         self.obake_list = []
@@ -1078,17 +1078,17 @@ class App:
     def draw(self) -> None:
         pyxel.cls(0)
         if not self.connect_video_flag:
-            pyxel.text(WINDOW_W // 4, WINDOW_H - 10, "Waiting for camera to connect", 7)
-        if self.status == "title":
+            pyxel.text(WINDOW_W // 4, WINDOW_H - 10, 'Waiting for camera to connect', 7)
+        if self.status == 'title':
             if self.connect_video_flag:
                 videoWidth = js.videoWidth
                 videoHeight = js.videoHeight
-                pyxel.text(WINDOW_W // 4, WINDOW_H - 10, "camera {}x{}".format(videoWidth, videoHeight), 7)
+                pyxel.text(WINDOW_W // 4, WINDOW_H - 10, 'camera {}x{}'.format(videoWidth, videoHeight), 7)
             self.title_menu.draw()
             for hand in self.hands:
                 hand.draw()
             self.point_detector.draw()
-        if self.status == "play":
+        if self.status == 'play':
             BackGround.draw()
             for hand in self.hands:
                 hand.draw()
