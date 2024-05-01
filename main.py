@@ -893,6 +893,7 @@ class FinishImage:
     V = 164
     W = 135
     H = 28
+    COLKEY = 0
 
     def __init__(self) -> None:
         self.load()
@@ -901,7 +902,7 @@ class FinishImage:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
 
     def draw(self, x, y) -> None:
-        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H)
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
 
 
 class ScoreImage:
@@ -911,6 +912,7 @@ class ScoreImage:
     V = 195
     W = 126
     H = 28
+    COLKEY = 0
 
     def __init__(self) -> None:
         self.load()
@@ -919,7 +921,7 @@ class ScoreImage:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
 
     def draw(self, x, y) -> None:
-        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H)
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
 
 
 class BackButtonImage:
@@ -929,6 +931,7 @@ class BackButtonImage:
     V = 164
     W = 36
     H = 36
+    COLKEY = 15
 
     def __init__(self) -> None:
         self.load()
@@ -937,7 +940,7 @@ class BackButtonImage:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
 
     def draw(self, x, y) -> None:
-        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H)
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
 
 
 class BackButton:
@@ -958,6 +961,57 @@ class BackButton:
     def draw(self) -> None:
         self.back_button_image.draw(self.x, self.y)
 
+
+class ObakeParticle:
+    obake_particle_list = []
+    obake_image = None
+    SPEED = 1
+    INTERVAL = 5
+    MAX_RATE_SCORE = 40000
+
+    def __init__(self) -> None:
+        self.x = random.randint(0, WINDOW_W)
+        self.y = WINDOW_H
+        self.flip = random.random() < 0.5
+        self.color = random.randint(1, 15)
+        self.active = True
+
+    def _update(self) -> None:
+        self.y -= self.SPEED
+        if self.y + ObakeDeadImage.H < 0:
+            self.active = False
+
+    def _draw(self) -> None:
+        if self.obake_image is not None:
+            pyxel.pal(7, self.color)
+            self.obake_image.draw(self.x, self.y, self.flip)
+            pyxel.pal()
+
+    @classmethod
+    def add_particle(cls):
+        cls.obake_particle_list.append(ObakeParticle())
+
+    @classmethod
+    def load(cls):
+        if cls.obake_image is None:
+            cls.obake_image = ObakeImage()
+
+    @classmethod
+    def reset(cls):
+        cls.obake_particle_list = []
+
+    @classmethod
+    def update(cls):
+        if pyxel.frame_count % cls.INTERVAL == 0 and random.random() < Score.total / cls.MAX_RATE_SCORE:
+            cls.add_particle()
+        for particle in cls.obake_particle_list:
+            particle._update()
+        cls.obake_particle_list = [particle for particle in cls.obake_particle_list if particle.active]
+
+    @classmethod
+    def draw(cls):
+        for particle in cls.obake_particle_list:
+            particle._draw()
 
 class Result:
     FINISH_X = (WINDOW_W - FinishImage.W) // 2
@@ -1029,6 +1083,7 @@ class App:
         self.bullet_manger = BulletManager()
         Score.load()
         ObakeDeadParticle.load()
+        ObakeParticle.load()
         self.wave = Wave()
         self.title_menu = TitleMenu(self.sens)
         self.result = Result()
@@ -1103,6 +1158,7 @@ class App:
             ShakeEffect.update()
 
         if self.status == 'result':
+            ObakeParticle.update()
             self.result.update()
             landmarks = js.getLandmarks().to_py()
             self.hands = [Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks]
@@ -1121,6 +1177,7 @@ class App:
     def reset(self) -> None:
         self.obake_list = []
         ObakeDeadParticle.reset()
+        ObakeParticle.reset()
         self.bullet_manger.reset()
         self.wave.reset()
         Score.reset()
@@ -1151,6 +1208,7 @@ class App:
             Score.draw()
             ObakeDeadParticle.draw()
         if self.status == 'result':
+            ObakeParticle.draw()
             self.result.draw()
             for hand in self.hands:
                 hand.draw()
