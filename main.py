@@ -967,6 +967,29 @@ class Result:
         self.back_button.draw()
 
 
+class ShakeEffect:
+    count = 0
+    BREADTH = 3
+    SHAKE_TIME = 10
+
+    @classmethod
+    def update(cls):
+        if cls.count > 0:
+            cls.count -= 1
+        dx = random.randint(-cls.BREADTH, cls.BREADTH) * cls.count / cls.SHAKE_TIME
+        dy = random.randint(-cls.BREADTH, cls.BREADTH) * cls.count / cls.SHAKE_TIME
+        pyxel.camera(dx, dy)
+
+    @classmethod
+    def shake(cls):
+        cls.count = cls.SHAKE_TIME
+
+    @classmethod
+    def reset(cls):
+        cls.count = 0
+        pyxel.camera()
+
+
 class App:
     def __init__(self) -> None:
         pyxel.init(WINDOW_W, WINDOW_H, title='obakeHunt')
@@ -1034,6 +1057,7 @@ class App:
                 if self.bullet_manger.shoot():
                     for obake in self.obake_list:
                         obake.shot(self.shoot_detector.shoot_position())
+                    ShakeEffect.shake()
             if self.reload_detector.is_reload():
                 self.bullet_manger.reload()
 
@@ -1050,6 +1074,7 @@ class App:
 
             Score.update()
             ObakeDeadParticle.update()
+            ShakeEffect.update()
 
         if self.status == 'result':
             self.result.update()
@@ -1074,6 +1099,7 @@ class App:
         self.wave.reset()
         Score.reset()
         self.shoot_detector = ShootDetector()
+        ShakeEffect.reset()
 
     def draw(self) -> None:
         pyxel.cls(0)
