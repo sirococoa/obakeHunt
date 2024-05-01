@@ -72,6 +72,25 @@ class Hand:
         return target_vector[:2]
 
 
+class CrossHairImage:
+    ASSET_FILE = './assets/cross_hair.png'
+    I = 1
+    U = 0
+    V = 115
+    W = 20
+    H = 20
+    COLKEY = 0
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self, x: int, y: int) -> None:
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
+
+
 class ShootDetector:
     TARGET_HISTORY_NUM = 60
     SHOOT_DETECTION_LENGTH = 0.25
@@ -80,6 +99,7 @@ class ShootDetector:
     MARK_DETECTION_ACCURACY = 0.05
 
     def __init__(self) -> None:
+        self.cross_hair_image = CrossHairImage()
         self.target_history = deque(maxlen=self.TARGET_HISTORY_NUM)
         self.position: list[float] | None = None
         self.mark: list[float] | None = None
@@ -123,6 +143,12 @@ class ShootDetector:
 
     def shoot_position(self) -> list[float]:
         return self.position
+
+    def draw(self):
+        if self.mark is not None:
+            x = self.mark[0] * WINDOW_W - CrossHairImage.W // 2
+            y = self.mark[1] * WINDOW_H - CrossHairImage.H // 2
+            self.cross_hair_image.draw(x, y)
 
 
 class ReloadDetector:
@@ -1120,6 +1146,7 @@ class App:
                 hand.draw()
             for obake in self.obake_list:
                 obake.draw()
+            self.shoot_detector.draw()
             self.bullet_manger.draw()
             Score.draw()
             ObakeDeadParticle.draw()
