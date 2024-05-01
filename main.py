@@ -26,11 +26,13 @@ class Hand:
     def __init__(self, landmarks: Any, aspect: float, sens: float) -> None:
         self.points = []
         for landmark in landmarks:
-            x, y, z = landmark['x'], landmark['y'], landmark['z']
+            x, y, z = landmark['x'] - 0.5, landmark['y'] - 0.5, landmark['z']
             if aspect < 1:
-                self.points.append([x, 0.5 - (y - 0.5) / aspect, z])
+                y = y / aspect
             else:
-                self.points.append([0.5 - (x - 0.5) * aspect, y, z])
+                x = x * aspect
+            x, y = x + 0.5, y + 0.5
+            self.points.append([1-x, y, z])
 
         self.target = self.calc_target(sens)
 
