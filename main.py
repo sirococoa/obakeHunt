@@ -969,7 +969,7 @@ class Result:
 
 class App:
     def __init__(self) -> None:
-        pyxel.init(WINDOW_W, WINDOW_H)
+        pyxel.init(WINDOW_W, WINDOW_H, title='obakeHunt')
         pyxel.mouse(True)
         self.hands = []
         self.sens = 0.5
