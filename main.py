@@ -5,12 +5,16 @@ from typing import Any
 import pyxel
 
 import js
-import numpy
-from scipy.spatial import distance
 
 WINDOW_W = 256
 WINDOW_H = 256
 
+
+def distance(a: list[float], b: list[float]) -> float:
+    return pyxel.sqrt(sum((x - y)**2 for x, y in zip(a, b)))
+
+def subtraction(a: list[float], b: list[float]) -> list[float]:
+    return [x - y for x, y in zip(a, b)]
 
 class Hand:
     POINT_SIZE = 7
@@ -24,9 +28,9 @@ class Hand:
         for landmark in landmarks:
             x, y, z = landmark['x'], landmark['y'], landmark['z']
             if aspect < 1:
-                self.points.append(numpy.asarray((x, 0.5 - (y - 0.5) / aspect, z)))
+                self.points.append([x, 0.5 - (y - 0.5) / aspect, z])
             else:
-                self.points.append(numpy.asarray((0.5 - (x - 0.5) * aspect, y, z)))
+                self.points.append([0.5 - (x - 0.5) * aspect, y, z])
 
         self.target = self.calc_target(sens)
 
@@ -36,31 +40,33 @@ class Hand:
         pyxel.circ(self.target[0] * WINDOW_W, self.target[1] * WINDOW_H, self.TARGET_SIZE, self.TARGET_COLOR)
 
     def thumb_length(self) -> float:
-        return distance.euclidean(self.points[2], self.points[3]) + distance.euclidean(self.points[3], self.points[4])
+        return distance(self.points[2], self.points[3]) + distance(self.points[3], self.points[4])
 
-    def thumb_tip_point(self) -> numpy.ndarray:
+    def thumb_tip_point(self) -> list[float]:
         return self.points[4]
 
     def index_finger_length(self) -> float:
-        return distance.euclidean(self.points[5], self.points[8])
+        return distance(self.points[5], self.points[8])
 
-    def index_finger_vector(self) -> numpy.ndarray:
-        return self.points[8] - self.points[5]
+    def index_finger_vector(self) -> list[float]:
+        return subtraction(self.points[8], self.points[5])
 
-    def index_finger_base(self) -> numpy.ndarray:
+    def index_finger_base(self) -> list[float]:
         return self.points[5]
     
-    def index_finger_tip_point(self) -> numpy.ndarray:
+    def index_finger_tip_point(self) -> list[float]:
         return self.points[8]
     
-    def middle_finger_tip_point(self) -> numpy.ndarray:
+    def middle_finger_tip_point(self) -> list[float]:
         return self.points[12]
 
-    def ring_finger_pip_point(self) -> numpy.ndarray:
+    def ring_finger_pip_point(self) -> list[float]:
         return self.points[14]
 
-    def calc_target(self, sens) -> numpy.ndarray:
-        target_vector = self.index_finger_base() + self.index_finger_vector() / self.thumb_length() * sens
+    def calc_target(self, sens) -> list[float]:
+        target_vector = []
+        for base, vector in zip(self.index_finger_base(), self.index_finger_vector()):
+            target_vector.append(base + vector / self.thumb_length() * sens)
         return target_vector[:2]
 
 
@@ -73,12 +79,12 @@ class ShootDetector:
 
     def __init__(self) -> None:
         self.target_history = deque(maxlen=self.TARGET_HISTORY_NUM)
-        self.position: numpy.ndarray | None = None
-        self.mark: numpy.ndarray | None = None
+        self.position: list[float] | None = None
+        self.mark: list[float] | None = None
         self.marked_index = 0
         self.shoot_flag = False
 
-    def update(self, target: numpy.ndarray) -> None:
+    def update(self, target: list[float]) -> None:
         self.target_history.append(target)
         if len(self.target_history) < self.TARGET_HISTORY_NUM:
             return
@@ -94,7 +100,7 @@ class ShootDetector:
         current = self.target_history[-1]
         distance_list = []
         for i in range(1, self.MARK_DETECTION_FLAME + 1):
-            distance_list.append(distance.euclidean(current, self.target_history[-i]))
+            distance_list.append(distance(current, self.target_history[-i]))
         if all(d < self.MARK_DETECTION_ACCURACY for d in distance_list):
             self.mark = current
             self.marked_index = len(self.target_history) - 1
@@ -102,7 +108,7 @@ class ShootDetector:
     def detect_shoot(self) -> None:
         self.shoot_flag = False
         current = self.target_history[-1]
-        if self.mark is not None and distance.euclidean(self.mark, current) < self.SHOOT_DETECTION_ACCURACY:
+        if self.mark is not None and distance(self.mark, current) < self.SHOOT_DETECTION_ACCURACY:
             for i in range(self.marked_index, len(self.target_history)):
                 if self.mark[1] - self.target_history[i][1] > self.SHOOT_DETECTION_LENGTH:
                     self.position = self.mark
@@ -113,7 +119,7 @@ class ShootDetector:
     def is_shoot(self) -> bool:
         return self.shoot_flag
 
-    def shoot_position(self) -> numpy.ndarray:
+    def shoot_position(self) -> list[float]:
         return self.position
 
 
@@ -122,8 +128,8 @@ class ReloadDetector:
         self.reload_flag = False
 
     def update(self, hand: Hand) -> None:
-        if distance.euclidean(hand.thumb_tip_point(), hand.ring_finger_pip_point()) < hand.thumb_length() and \
-            distance.euclidean(hand.index_finger_tip_point(), hand.middle_finger_tip_point()) < hand.thumb_length():
+        if distance(hand.thumb_tip_point(), hand.ring_finger_pip_point()) < hand.thumb_length() and \
+            distance(hand.index_finger_tip_point(), hand.middle_finger_tip_point()) < hand.thumb_length():
             self.reload_flag = True
         else:
             self.reload_flag = False
@@ -158,7 +164,7 @@ class PointDetector:
             return []
         current = self.point_history[-1]
         for point in self.point_history:
-            if distance.euclidean(current, point) > self.DETECTION_DETECTION_ACCURACY:
+            if distance(current, point) > self.DETECTION_DETECTION_ACCURACY:
                 return []
         self.count = 0
         return [int(current[0] * WINDOW_W), int(current[1] * WINDOW_H)]
@@ -169,7 +175,7 @@ class PointDetector:
         current = self.point_history[-1]
         for i in range(len(self.point_history)):
             point = self.point_history[-(i + 1)]
-            if distance.euclidean(current, point) > self.DETECTION_DETECTION_ACCURACY:
+            if distance(current, point) > self.DETECTION_DETECTION_ACCURACY:
                 break
         if i < self.DETECTION_DRAW_START_TIME:
             return
@@ -329,7 +335,7 @@ class Obake:
             # go right
             return self.x + self.W >= WINDOW_W
 
-    def shot(self, position: numpy.ndarray) -> None:
+    def shot(self, position: list[float]) -> None:
         if not self.is_active() or self.is_waiting() or self.is_appearing():
             return
         if self.collision(position[0] * WINDOW_W, position[1] * WINDOW_H):
