@@ -45,7 +45,7 @@ const createHandLandmarker = async () => {
         numHands: 1
     });
 };
-createHandLandmarker();
+await createHandLandmarker();
 
 const video = document.getElementById("webcam");
 
@@ -79,8 +79,6 @@ if (hasGetUserMedia()) {
 let lastVideoTime = -1;
 let results = undefined;
 async function predictWebcam() {
-    window.detectionRunning = true
-
     window.videoWidth = video.videoWidth;
     window.videoHeight = video.videoHeight;
 
@@ -96,4 +94,6 @@ async function predictWebcam() {
     if (window.webcamRunning === true) {
         window.requestAnimationFrame(predictWebcam);
     }
+
+    window.detectionRunning = true
 }
