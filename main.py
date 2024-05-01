@@ -1072,6 +1072,10 @@ class App:
         pyxel.cls(0)
         if not self.connect_video_flag:
             pyxel.text(WINDOW_W // 4, WINDOW_H - 10, "Waiting for camera to connect", 7)
+        else:
+            videoWidth = js.videoWidth
+            videoHeight = js.videoHeight
+            pyxel.text(WINDOW_W // 4, WINDOW_H - 20, "{} {}".format(videoWidth, videoHeight), 7)
         if self.status == "title":
             self.title_menu.draw()
             for hand in self.hands:
