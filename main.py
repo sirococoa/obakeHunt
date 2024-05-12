@@ -11,10 +11,12 @@ WINDOW_H = 256
 
 
 def distance(a: list[float], b: list[float]) -> float:
-    return pyxel.sqrt(sum((x - y)**2 for x, y in zip(a, b)))
+    return pyxel.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+
 
 def subtraction(a: list[float], b: list[float]) -> list[float]:
     return [x - y for x, y in zip(a, b)]
+
 
 class Hand:
     POINT_SIZE = 7
@@ -32,17 +34,29 @@ class Hand:
             else:
                 x = x * aspect
             x, y = x + 0.5, y + 0.5
-            self.points.append([1-x, y, z])
+            self.points.append([1 - x, y, z])
 
         self.target = self.calc_target(sens)
 
     def draw(self) -> None:
         for point in self.points:
-            pyxel.circ(point[0] * WINDOW_W, point[1] * WINDOW_H, self.POINT_SIZE, self.POINT_COLOR)
-        pyxel.circ(self.target[0] * WINDOW_W, self.target[1] * WINDOW_H, self.TARGET_SIZE, self.TARGET_COLOR)
+            pyxel.circ(
+                point[0] * WINDOW_W,
+                point[1] * WINDOW_H,
+                self.POINT_SIZE,
+                self.POINT_COLOR,
+            )
+        pyxel.circ(
+            self.target[0] * WINDOW_W,
+            self.target[1] * WINDOW_H,
+            self.TARGET_SIZE,
+            self.TARGET_COLOR,
+        )
 
     def thumb_length(self) -> float:
-        return distance(self.points[2], self.points[3]) + distance(self.points[3], self.points[4])
+        return distance(self.points[2], self.points[3]) + distance(
+            self.points[3], self.points[4]
+        )
 
     def thumb_tip_point(self) -> list[float]:
         return self.points[4]
@@ -55,10 +69,10 @@ class Hand:
 
     def index_finger_base(self) -> list[float]:
         return self.points[5]
-    
+
     def index_finger_tip_point(self) -> list[float]:
         return self.points[8]
-    
+
     def middle_finger_tip_point(self) -> list[float]:
         return self.points[12]
 
@@ -129,14 +143,19 @@ class ShootDetector:
 
     def detect_shoot(self) -> None:
         self.shoot_flag = False
+        if self.mark is None:
+            return
         current = self.target_history[-1]
-        if self.mark is not None and distance(self.mark, current) < self.SHOOT_DETECTION_ACCURACY:
+        if distance(self.mark, current) < self.SHOOT_DETECTION_ACCURACY:
             for i in range(self.marked_index, len(self.target_history)):
-                if self.mark[1] - self.target_history[i][1] > self.SHOOT_DETECTION_LENGTH:
+                if (
+                    self.mark[1] - self.target_history[i][1]
+                    > self.SHOOT_DETECTION_LENGTH
+                ):
                     self.position = self.mark
                     self.mark = None
                     self.shoot_flag = True
-                    break
+                    return
 
     def is_shoot(self) -> bool:
         return self.shoot_flag
@@ -156,8 +175,12 @@ class ReloadDetector:
         self.reload_flag = False
 
     def update(self, hand: Hand) -> None:
-        if distance(hand.thumb_tip_point(), hand.ring_finger_pip_point()) < hand.thumb_length() and \
-            distance(hand.index_finger_tip_point(), hand.middle_finger_tip_point()) < hand.thumb_length():
+        if (
+            distance(hand.thumb_tip_point(), hand.ring_finger_pip_point())
+            < hand.thumb_length()
+            and distance(hand.index_finger_tip_point(), hand.middle_finger_tip_point())
+            < hand.thumb_length()
+        ):
             self.reload_flag = True
         else:
             self.reload_flag = False
@@ -207,8 +230,14 @@ class PointDetector:
                 break
         if i < self.DETECTION_DRAW_START_TIME:
             return
-        pyxel.circb(int(current[0] * WINDOW_W), int(current[1] * WINDOW_H), self.RADIUS, 8)
-        r = int((i - self.DETECTION_DRAW_START_TIME) / (self.DETECTION_TIME - self.DETECTION_DRAW_START_TIME) * self.RADIUS)
+        pyxel.circb(
+            int(current[0] * WINDOW_W), int(current[1] * WINDOW_H), self.RADIUS, 8
+        )
+        r = int(
+            (i - self.DETECTION_DRAW_START_TIME)
+            / (self.DETECTION_TIME - self.DETECTION_DRAW_START_TIME)
+            * self.RADIUS
+        )
         pyxel.circ(int(current[0] * WINDOW_W), int(current[1] * WINDOW_H), r, 8)
 
 
@@ -253,7 +282,9 @@ class ObakeDeadParticle:
             self.active = False
 
     def _draw(self) -> None:
-        dither = max(0, min(1, (self.ACTIVE_TIME - self.count) / self.ACTIVE_TIME + self.OFFSET))
+        dither = max(
+            0, min(1, (self.ACTIVE_TIME - self.count) / self.ACTIVE_TIME + self.OFFSET)
+        )
         pyxel.dither(dither)
         self.obake_dead_image.draw(self.x, self.y, self.flip)
         pyxel.dither(1)
@@ -276,7 +307,9 @@ class ObakeDeadParticle:
     def update(cls):
         for particle in cls.obake_dead_particle_list:
             particle._update()
-        cls.obake_dead_particle_list = [particle for particle in cls.obake_dead_particle_list if particle.active]
+        cls.obake_dead_particle_list = [
+            particle for particle in cls.obake_dead_particle_list if particle.active
+        ]
 
     @classmethod
     def draw(cls):
@@ -337,15 +370,17 @@ class Obake:
         self.count += 1
         if not self.is_active() or self.is_waiting() or self.is_appearing():
             return
-        if self.count % (self.ZIGZAG_DURATION*2) < self.ZIGZAG_DURATION:
-            self.x += self.direction[0] + 0.5*(self.direction[0] + self.direction[1])
-            self.y += self.direction[1] + 0.5*(-self.direction[0] + self.direction[1])
+        if self.count % (self.ZIGZAG_DURATION * 2) < self.ZIGZAG_DURATION:
+            self.x += self.direction[0] + 0.5 * (self.direction[0] + self.direction[1])
+            self.y += self.direction[1] + 0.5 * (-self.direction[0] + self.direction[1])
         else:
-            self.x += self.direction[0] + 0.5*(self.direction[0] - self.direction[1])
-            self.y += self.direction[1] + 0.5*(self.direction[0] + self.direction[1])
+            self.x += self.direction[0] + 0.5 * (self.direction[0] - self.direction[1])
+            self.y += self.direction[1] + 0.5 * (self.direction[0] + self.direction[1])
         if self.next_flip_count < self.count or self.is_edge():
             self.direction[0] = -self.direction[0]
-            self.next_flip_count = self.count + random.randint(self.MIN_FLIP_COUNT, self.MAX_FLIP_COUNT)
+            self.next_flip_count = self.count + random.randint(
+                self.MIN_FLIP_COUNT, self.MAX_FLIP_COUNT
+            )
         if self.is_outside():
             self.active = False
 
@@ -354,7 +389,7 @@ class Obake:
             if -self.H < self.y < WINDOW_H:
                 return False
         return True
-    
+
     def is_edge(self) -> bool:
         if self.direction[0] < 0:
             # go left
@@ -375,8 +410,9 @@ class Obake:
             self.active = False
 
     def collision(self, sx: int, sy: int) -> bool:
-        return (-self.COLLISION_MARGIN <= sx - self.x < self.W + self.COLLISION_MARGIN)\
-            and (-self.COLLISION_MARGIN <= sy - self.y < self.H + self.COLLISION_MARGIN)
+        return (
+            -self.COLLISION_MARGIN <= sx - self.x < self.W + self.COLLISION_MARGIN
+        ) and (-self.COLLISION_MARGIN <= sy - self.y < self.H + self.COLLISION_MARGIN)
 
     def is_active(self) -> bool:
         return self.active
@@ -450,6 +486,7 @@ class BulletImage:
     def draw(self, x: int, y: int) -> None:
         pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
 
+
 class BulletEmptyImage:
     ASSET_FILE = './assets/bullet_empty.png'
     X = 0
@@ -466,17 +503,18 @@ class BulletEmptyImage:
 
     def load(self) -> None:
         pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
-    
+
     def draw(self, x: int, y: int) -> None:
         pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
+
 
 class BulletUI:
     X = 100
     Y = 190
     W = 56
     H = 60
-    BULLET_W = 10 # BULLET_W * 3 + MARGIN_X * 2 = 56
-    BULLET_H = 25 # BULLET_W * 2 + MARGIN_X * 1 = 60
+    BULLET_W = 10  # BULLET_W * 3 + MARGIN_X * 2 = 56
+    BULLET_H = 25  # BULLET_W * 2 + MARGIN_X * 1 = 60
     MARGIN_X = 13
     MARGIN_Y = 10
 
@@ -568,14 +606,16 @@ class BulletManager:
 
     def is_out_of_ammo(self) -> bool:
         return self.bullet_num <= 0
-    
+
     def is_max_of_ammo(self) -> bool:
         return self.bullet_num >= self.BULLET_MAX_NUM
 
     def draw(self) -> None:
         self.bullet_ui.draw(self.bullet_num)
         if self.reload_count < self.RELOAD_TIME:
-            self.reload_ui.draw(self.reload_count / self.RELOAD_TIME + self.RELOAD_DISPLAY_OFFSET)
+            self.reload_ui.draw(
+                self.reload_count / self.RELOAD_TIME + self.RELOAD_DISPLAY_OFFSET
+            )
 
 
 class NumberImage:
@@ -583,8 +623,8 @@ class NumberImage:
     I = 1
     U = 0
     V = 78
-    W = 50 
-    NUMBER_W = 5 # NUMBER_W * 10 = W
+    W = 50
+    NUMBER_W = 5  # NUMBER_W * 10 = W
     H = 9
     COLKEY = 0
 
@@ -608,7 +648,7 @@ class LargeNumberImage:
     U = 0
     V = 87
     W = 176
-    NUMBER_W = 16 # NUMBER_W * 11 = W
+    NUMBER_W = 16  # NUMBER_W * 11 = W
     H = 28
     COLKEY = 0
 
@@ -687,17 +727,17 @@ class Score:
 
 class Wave:
     SPAWN_NUM = (
-        (2, ),
-        (2, ),
-        (3, ),
-        (3, ),
+        (2,),
+        (2,),
+        (3,),
+        (3,),
         (2, 2),
         (2, 2),
         (3, 2),
         (3, 2),
         (3, 3),
         (3, 3),
-        (6, ),
+        (6,),
     )
 
     SPAWN_POINT = (
@@ -808,7 +848,9 @@ class UpDownButtonImage:
 
     def draw(self, x, y, up: bool) -> None:
         if up:
-            pyxel.blt(x, y, self.I, self.U + self.BUTTON_W, self.V, self.BUTTON_W, self.H)
+            pyxel.blt(
+                x, y, self.I, self.U + self.BUTTON_W, self.V, self.BUTTON_W, self.H
+            )
         else:
             pyxel.blt(x, y, self.I, self.U, self.V, self.BUTTON_W, self.H)
 
@@ -828,13 +870,13 @@ class UpDownButton:
             if self.y <= y <= self.y + self.H:
                 return True
         return False
-    
+
     def draw(self) -> None:
         self.up_down_image.draw(self.x, self.y, self.up)
 
 
 class TitleMenu:
-    NUMBER_Y = SensImage.Y + SensImage.H // 2 - LargeNumberImage.H // 2 
+    NUMBER_Y = SensImage.Y + SensImage.H // 2 - LargeNumberImage.H // 2
     BUTTON_Y = SensImage.Y + SensImage.H // 2 - LargeNumberImage.H // 2
     DOWN_BUTTON_X = WINDOW_W // 2 + 10
     UP_BUTTON_X = WINDOW_W - 10 - UpDownButton.W
@@ -846,7 +888,7 @@ class TitleMenu:
     def __init__(self, init_sens: float) -> None:
         self.sens = init_sens
         self.up_button = UpDownButton(self.UP_BUTTON_X, self.BUTTON_Y, True)
-        self.down_button = UpDownButton(self.DOWN_BUTTON_X, self.BUTTON_Y,False)
+        self.down_button = UpDownButton(self.DOWN_BUTTON_X, self.BUTTON_Y, False)
         self.title_image = TitleImage()
         self.start_image = StartImage()
         self.sens_image = SensImage()
@@ -875,14 +917,20 @@ class TitleMenu:
         self.title_image.draw()
         self.start_image.draw()
         self.sens_image.draw()
-        
+
         self.up_button.draw()
         self.down_button.draw()
 
         sens = '{:.1f}'.format(self.sens)
-        number_x = self.DOWN_BUTTON_X + UpDownButton.W + (
-            (self.UP_BUTTON_X - self.DOWN_BUTTON_X - UpDownButton.W) - len(sens)*LargeNumberImage.NUMBER_W
-            ) // 2
+        number_x = (
+            self.DOWN_BUTTON_X
+            + UpDownButton.W
+            + (
+                (self.UP_BUTTON_X - self.DOWN_BUTTON_X - UpDownButton.W)
+                - len(sens) * LargeNumberImage.NUMBER_W
+            )
+            // 2
+        )
         self.large_number_image.draw(number_x, self.NUMBER_Y, sens)
 
 
@@ -957,7 +1005,7 @@ class BackButton:
             if self.y <= y <= self.y + self.H:
                 return True
         return False
-    
+
     def draw(self) -> None:
         self.back_button_image.draw(self.x, self.y)
 
@@ -1002,16 +1050,22 @@ class ObakeParticle:
 
     @classmethod
     def update(cls):
-        if pyxel.frame_count % cls.INTERVAL == 0 and random.random() < Score.total / cls.MAX_RATE_SCORE:
+        if (
+            pyxel.frame_count % cls.INTERVAL == 0
+            and random.random() < Score.total / cls.MAX_RATE_SCORE
+        ):
             cls.add_particle()
         for particle in cls.obake_particle_list:
             particle._update()
-        cls.obake_particle_list = [particle for particle in cls.obake_particle_list if particle.active]
+        cls.obake_particle_list = [
+            particle for particle in cls.obake_particle_list if particle.active
+        ]
 
     @classmethod
     def draw(cls):
         for particle in cls.obake_particle_list:
             particle._draw()
+
 
 class Result:
     FINISH_X = (WINDOW_W - FinishImage.W) // 2
@@ -1038,7 +1092,9 @@ class Result:
         self.finish_image.draw(self.FINISH_X, self.FINISH_Y)
 
         score = str(Score.total)
-        score_image_and_score_width = ScoreImage.W + LargeNumberImage.NUMBER_W*(len(score) + 1)
+        score_image_and_score_width = ScoreImage.W + LargeNumberImage.NUMBER_W * (
+            len(score) + 1
+        )
         score_image_x = (WINDOW_H - score_image_and_score_width) // 2
         score_x = score_image_x + ScoreImage.W + LargeNumberImage.NUMBER_W
         self.score_image.draw(score_image_x, self.SCORE_Y)
@@ -1109,7 +1165,9 @@ class App:
         if self.status == 'title':
             self.title_menu.update()
             landmarks = js.getLandmarks().to_py()
-            self.hands = [Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks]
+            self.hands = [
+                Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks
+            ]
             if self.hands:
                 self.point_detector.update(self.hands[0])
             if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
@@ -1127,7 +1185,9 @@ class App:
                 return
 
             landmarks = js.getLandmarks().to_py()
-            self.hands = [Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks]
+            self.hands = [
+                Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks
+            ]
             if self.hands:
                 self.shoot_detector.update(self.hands[0].target)
                 self.reload_detector.update(self.hands[0])
@@ -1161,7 +1221,9 @@ class App:
             ObakeParticle.update()
             self.result.update()
             landmarks = js.getLandmarks().to_py()
-            self.hands = [Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks]
+            self.hands = [
+                Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks
+            ]
             if self.hands:
                 self.point_detector.update(self.hands[0])
             if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
@@ -1190,13 +1252,20 @@ class App:
             if self.connect_video_flag:
                 videoWidth = js.videoWidth
                 videoHeight = js.videoHeight
-                pyxel.text(WINDOW_W // 4, WINDOW_H - 10, 'CAMERA {}x{}'.format(videoWidth, videoHeight), 7)
+                pyxel.text(
+                    WINDOW_W // 4,
+                    WINDOW_H - 10,
+                    'CAMERA {}x{}'.format(videoWidth, videoHeight),
+                    7,
+                )
                 if len(self.hands) == 0:
                     pyxel.text(WINDOW_W // 2 + 10, WINDOW_H - 10, 'HAND: not found', 7)
                 else:
                     pyxel.text(WINDOW_W // 2 + 10, WINDOW_H - 10, 'HAND: found', 7)
             else:
-                pyxel.text(WINDOW_W // 4, WINDOW_H - 10, 'Waiting for camera to connect', 7)
+                pyxel.text(
+                    WINDOW_W // 4, WINDOW_H - 10, 'Waiting for camera to connect', 7
+                )
             self.title_menu.draw()
             for hand in self.hands:
                 hand.draw()
