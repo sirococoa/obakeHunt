@@ -25,7 +25,7 @@ class Hand:
     TARGET_SIZE = 3
     TARGET_COLOR = 8
 
-    def __init__(self, landmarks: Any, aspect: float, sens: float) -> None:
+    def __init__(self, landmarks: Any, aspect: float, sens: float, time: float) -> None:
         self.points = []
         for landmark in landmarks:
             x, y, z = landmark['x'] - 0.5, landmark['y'] - 0.5, landmark['z']
@@ -35,6 +35,7 @@ class Hand:
                 x = x * aspect
             x, y = x + 0.5, y + 0.5
             self.points.append([1 - x, y, z])
+        self.time = time
 
         self.target = self.calc_target(sens)
 
@@ -106,56 +107,48 @@ class CrossHairImage:
 
 
 class ShootDetector:
-    TARGET_HISTORY_NUM = 60
     SHOOT_DETECTION_LENGTH = 0.25
-    SHOOT_DETECTION_ACCURACY = 0.1
-    MARK_DETECTION_FLAME = 5
     MARK_DETECTION_ACCURACY = 0.05
+    MARK_DETECTION_TIME = 0.5
+    MARK_ACTIVE_TIME = 1
 
     def __init__(self) -> None:
         self.cross_hair_image = CrossHairImage()
-        self.target_history = deque(maxlen=self.TARGET_HISTORY_NUM)
         self.position: list[float] | None = None
         self.mark: list[float] | None = None
-        self.marked_index = 0
+        self.shoot_flag = False
+        self.mark_time  = -1
+
+    def update(self) -> None:
         self.shoot_flag = False
 
-    def update(self, target: list[float]) -> None:
-        self.target_history.append(target)
-        if len(self.target_history) < self.TARGET_HISTORY_NUM:
-            return
+    def detect(self, hand_history: list[Hand]) -> None:
+        self.update_mark(hand_history)
+        self.detect_shoot(hand_history[-1])
 
-        self.update_mark()
-        self.detect_shoot()
-
-    def update_mark(self) -> None:
-        if self.mark is not None:
-            self.marked_index -= 1
-            if self.marked_index < 0:
-                self.mark = None
-        current = self.target_history[-1]
+    def update_mark(self, hand_history: list[Hand]) -> None:
+        current = hand_history[-1]
+        if (
+            self.mark is not None
+            and current.time - self.mark_time > self.MARK_ACTIVE_TIME
+        ):
+            self.mark = None
         distance_list = []
-        for i in range(1, self.MARK_DETECTION_FLAME + 1):
-            distance_list.append(distance(current, self.target_history[-i]))
+        for hand in hand_history[::-1]:
+            if current.time - hand.time > self.MARK_DETECTION_TIME:
+                break
+            distance_list.append(distance(current.target, hand.target))
         if all(d < self.MARK_DETECTION_ACCURACY for d in distance_list):
-            self.mark = current
-            self.marked_index = len(self.target_history) - 1
+            self.mark = current.target
+            self.mark_time = current.time
 
-    def detect_shoot(self) -> None:
-        self.shoot_flag = False
+    def detect_shoot(self, current: Hand) -> None:
         if self.mark is None:
             return
-        current = self.target_history[-1]
-        if distance(self.mark, current) < self.SHOOT_DETECTION_ACCURACY:
-            for i in range(self.marked_index, len(self.target_history)):
-                if (
-                    self.mark[1] - self.target_history[i][1]
-                    > self.SHOOT_DETECTION_LENGTH
-                ):
-                    self.position = self.mark
-                    self.mark = None
-                    self.shoot_flag = True
-                    return
+        if self.mark[1] - current.target[1] > self.SHOOT_DETECTION_LENGTH:
+            self.position = self.mark
+            self.mark = None
+            self.shoot_flag = True
 
     def is_shoot(self) -> bool:
         return self.shoot_flag
@@ -174,7 +167,7 @@ class ReloadDetector:
     def __init__(self) -> None:
         self.reload_flag = False
 
-    def update(self, hand: Hand) -> None:
+    def detect(self, hand: Hand) -> None:
         if (
             distance(hand.thumb_tip_point(), hand.ring_finger_pip_point())
             < hand.thumb_length()
@@ -190,55 +183,134 @@ class ReloadDetector:
 
 
 class PointDetector:
-    DETECTION_TIME = 30
+    DETECTION_TIME = 1
     DETECTION_DETECTION_ACCURACY = 0.05
 
     POINT_INTERVAL = 20
 
     RADIUS = 20
-    DETECTION_DRAW_START_TIME = 10
+    DETECTION_DRAW_START_TIME = 0.1
 
     def __init__(self) -> None:
-        self.point_history = deque(maxlen=self.DETECTION_TIME)
-        self.count = self.POINT_INTERVAL
+        self.pointing_count = 0
+        self.pointing_position = []
 
-    def update(self, hand: Hand) -> None:
-        if self.count < self.POINT_INTERVAL:
-            self.count += 1
-        point = hand.index_finger_tip_point()
-        self.point_history.append([point[0], point[1]])
+    def update(self) -> None:
+        self.pointing_count += 1
+        if self.pointing_count > self.POINT_INTERVAL:
+            self.pointing_count = 0
+
+    def detect(self, hand_history: list[Hand]) -> None:
+        current = hand_history[-1]
+        self.pointing_position = [
+            int(current.index_finger_tip_point()[0] * WINDOW_W),
+            int(current.index_finger_tip_point()[1] * WINDOW_H),
+        ]
+        self.pointing_time = 0
+        for hand in hand_history[::-1]:
+            self.pointing_time = current.time - hand.time
+            if (
+                distance(
+                    current.index_finger_tip_point()[:1],
+                    hand.index_finger_tip_point()[:1],
+                )
+                > self.DETECTION_DETECTION_ACCURACY
+            ):
+                break
+        if self.pointing_time == 0:
+            self.pointing_count = 0
+            self.pointing_position = []
 
     def selected_point(self) -> list[int]:
-        if len(self.point_history) != self.DETECTION_TIME:
+        if self.pointing_count < self.POINT_INTERVAL:
             return []
-        if self.count < self.POINT_INTERVAL:
+        if self.pointing_time < self.DETECTION_TIME:
             return []
-        current = self.point_history[-1]
-        for point in self.point_history:
-            if distance(current, point) > self.DETECTION_DETECTION_ACCURACY:
-                return []
-        self.count = 0
-        return [int(current[0] * WINDOW_W), int(current[1] * WINDOW_H)]
+        return self.pointing_position
 
     def draw(self) -> None:
-        if len(self.point_history) != self.DETECTION_TIME:
+        if self.pointing_position and self.pointing_time > self.DETECTION_DRAW_START_TIME:
+            pyxel.circb(self.pointing_position[0], self.pointing_position[1], self.RADIUS, 8)
+            r = int(min(self.pointing_time / self.DETECTION_TIME, 1) * self.RADIUS)
+            pyxel.circ(self.pointing_position[0], self.pointing_position[1], r, 8)
+
+
+class MediapipeManager:
+    STORE_HAND_TIME = 2
+    SHOW_HAND_TIME = 0.3
+
+    def __init__(self, sens: float) -> None:
+        self.sens = sens
+        self.connect_flag = False
+        self.detect_flag = False
+        self.update_flag = False
+        self.videoAspect = 1
+        self.hand_history: list[Hand] = []
+        self.before_video_time = -1
+        self.shoot_detector = ShootDetector()
+        self.reload_detector = ReloadDetector()
+        self.point_detector = PointDetector()
+
+    def connect(self) -> None:
+        enable_webcam_flag = js.webcamRunning
+        enable_detection_flag = js.detectionRunning
+        if enable_webcam_flag and enable_detection_flag:
+            videoWidth = js.videoWidth
+            videoHeight = js.videoHeight
+            self.videoAspect = videoWidth / videoHeight
+            self.connect_flag = True
+
+    def update(self) -> None:
+        videoWidth = js.videoWidth
+        videoHeight = js.videoHeight
+        self.videoAspect = videoWidth / videoHeight
+
+        self.get_landmarks()
+
+        self.shoot_detector.update()
+        self.point_detector.update()
+
+        if self.update_flag and self.hand_history:
+            self.shoot_detector.detect(self.hand_history)
+            self.reload_detector.detect(self.hand_history[-1])
+            self.point_detector.detect(self.hand_history)
+
+    def latest_hand(self) -> Hand | None:
+        if self.hand_history:
+            return self.hand_history[-1]
+        return None
+
+    def get_landmarks(self) -> None:
+        results = js.getResults().to_py()
+        video_time = results['videoTime']
+        landmarks = results['landmarks']
+        if self.before_video_time == video_time:
+            self.update_flag = False
             return
-        current = self.point_history[-1]
-        for i in range(len(self.point_history)):
-            point = self.point_history[-(i + 1)]
-            if distance(current, point) > self.DETECTION_DETECTION_ACCURACY:
-                break
-        if i < self.DETECTION_DRAW_START_TIME:
-            return
-        pyxel.circb(
-            int(current[0] * WINDOW_W), int(current[1] * WINDOW_H), self.RADIUS, 8
-        )
-        r = int(
-            (i - self.DETECTION_DRAW_START_TIME)
-            / (self.DETECTION_TIME - self.DETECTION_DRAW_START_TIME)
-            * self.RADIUS
-        )
-        pyxel.circ(int(current[0] * WINDOW_W), int(current[1] * WINDOW_H), r, 8)
+        self.update_flag = True
+        self.before_video_time = video_time
+        if len(landmarks) == 0:
+            self.detect_flag = False
+        else:
+            self.detect_flag = True
+            self.hand_history.append(Hand(landmarks[0], self.videoAspect, self.sens, video_time))
+        self.hand_history = [
+            hand
+            for hand in self.hand_history
+            if video_time - hand.time < self.STORE_HAND_TIME
+        ]
+
+    def is_detect(self) -> bool:
+        return self.detect_flag
+
+    def is_video_connect(self) -> bool:
+        return self.connect_flag
+
+    def draw(self) -> None:
+        if self.hand_history:
+            hand = self.hand_history[-1]
+            if self.before_video_time - hand.time < self.SHOW_HAND_TIME:
+                hand.draw()
 
 
 class ObakeDeadImage:
@@ -1127,56 +1199,40 @@ class ShakeEffect:
 
 
 class App:
+    INIT_SENS = 0.5
+
     def __init__(self) -> None:
         pyxel.init(WINDOW_W, WINDOW_H, title='obakeHunt')
         pyxel.mouse(True)
-        self.hands = []
-        self.sens = 0.5
-        self.shoot_detector = ShootDetector()
-        self.reload_detector = ReloadDetector()
-        self.point_detector = PointDetector()
+        self.mediapipe_manager = MediapipeManager(self.INIT_SENS)
         self.obake_list = []
         self.bullet_manger = BulletManager()
         Score.load()
         ObakeDeadParticle.load()
         ObakeParticle.load()
         self.wave = Wave()
-        self.title_menu = TitleMenu(self.sens)
+        self.title_menu = TitleMenu(self.INIT_SENS)
         self.result = Result()
         self.status = 'title'
-        self.connect_video_flag = False
         pyxel.run(self.update, self.draw)
 
     def update(self) -> None:
-        if not self.connect_video_flag:
-            enable_webcam_flag = js.webcamRunning
-            enable_detection_flag = js.detectionRunning
-            if enable_webcam_flag and enable_detection_flag:
-                videoWidth = js.videoWidth
-                videoHeight = js.videoHeight
-                self.videoAspect = videoWidth / videoHeight
-                self.connect_video_flag = True
+        if not self.mediapipe_manager.is_video_connect():
+            self.mediapipe_manager.connect()
             return
-        else:
-            videoWidth = js.videoWidth
-            videoHeight = js.videoHeight
-            self.videoAspect = videoWidth / videoHeight
+
+        self.mediapipe_manager.update()
 
         if self.status == 'title':
             self.title_menu.update()
-            landmarks = js.getLandmarks().to_py()
-            self.hands = [
-                Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks
-            ]
-            if self.hands:
-                self.point_detector.update(self.hands[0])
             if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
                 if self.title_menu.select(pyxel.mouse_x, pyxel.mouse_y):
                     self.status = 'play'
-            point = self.point_detector.selected_point()
+            point = self.mediapipe_manager.point_detector.selected_point()
             if point:
                 if self.title_menu.select(point[0], point[1]):
                     self.status = 'play'
+            self.mediapipe_manager.sens = self.title_menu.sens
 
         if self.status == 'play':
             if pyxel.btn(pyxel.KEY_R):
@@ -1184,22 +1240,16 @@ class App:
                 self.status = 'title'
                 return
 
-            landmarks = js.getLandmarks().to_py()
-            self.hands = [
-                Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks
-            ]
-            if self.hands:
-                self.shoot_detector.update(self.hands[0].target)
-                self.reload_detector.update(self.hands[0])
-
             self.bullet_manger.update()
 
-            if self.shoot_detector.is_shoot():
+            if self.mediapipe_manager.shoot_detector.is_shoot():
                 if self.bullet_manger.shoot():
                     for obake in self.obake_list:
-                        obake.shot(self.shoot_detector.shoot_position())
+                        obake.shot(
+                            self.mediapipe_manager.shoot_detector.shoot_position()
+                        )
                     ShakeEffect.shake()
-            if self.reload_detector.is_reload():
+            if self.mediapipe_manager.reload_detector.is_reload():
                 self.bullet_manger.reload()
 
             for obake in self.obake_list:
@@ -1220,17 +1270,11 @@ class App:
         if self.status == 'result':
             ObakeParticle.update()
             self.result.update()
-            landmarks = js.getLandmarks().to_py()
-            self.hands = [
-                Hand(landmark, self.videoAspect, self.sens) for landmark in landmarks
-            ]
-            if self.hands:
-                self.point_detector.update(self.hands[0])
             if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
                 if self.result.select(pyxel.mouse_x, pyxel.mouse_y):
                     self.reset()
                     self.status = 'title'
-            point = self.point_detector.selected_point()
+            point = self.mediapipe_manager.point_detector.selected_point()
             if point:
                 if self.result.select(point[0], point[1]):
                     self.reset()
@@ -1243,13 +1287,12 @@ class App:
         self.bullet_manger.reset()
         self.wave.reset()
         Score.reset()
-        self.shoot_detector = ShootDetector()
         ShakeEffect.reset()
 
     def draw(self) -> None:
         pyxel.cls(0)
         if self.status == 'title':
-            if self.connect_video_flag:
+            if self.mediapipe_manager.is_video_connect():
                 videoWidth = js.videoWidth
                 videoHeight = js.videoHeight
                 pyxel.text(
@@ -1258,34 +1301,31 @@ class App:
                     'CAMERA {}x{}'.format(videoWidth, videoHeight),
                     7,
                 )
-                if len(self.hands) == 0:
-                    pyxel.text(WINDOW_W // 2 + 10, WINDOW_H - 10, 'HAND: not found', 7)
-                else:
+                if self.mediapipe_manager.is_detect():
                     pyxel.text(WINDOW_W // 2 + 10, WINDOW_H - 10, 'HAND: found', 7)
+                else:
+                    pyxel.text(WINDOW_W // 2 + 10, WINDOW_H - 10, 'HAND: not found', 7)
             else:
                 pyxel.text(
                     WINDOW_W // 4, WINDOW_H - 10, 'Waiting for camera to connect', 7
                 )
             self.title_menu.draw()
-            for hand in self.hands:
-                hand.draw()
-            self.point_detector.draw()
+            self.mediapipe_manager.draw()
+            self.mediapipe_manager.point_detector.draw()
         if self.status == 'play':
             BackGround.draw()
-            for hand in self.hands:
-                hand.draw()
+            self.mediapipe_manager.draw()
             for obake in self.obake_list:
                 obake.draw()
-            self.shoot_detector.draw()
+            self.mediapipe_manager.shoot_detector.draw()
             self.bullet_manger.draw()
             Score.draw()
             ObakeDeadParticle.draw()
         if self.status == 'result':
             ObakeParticle.draw()
             self.result.draw()
-            for hand in self.hands:
-                hand.draw()
-            self.point_detector.draw()
+            self.mediapipe_manager.draw()
+            self.mediapipe_manager.point_detector.draw()
 
 
 App()

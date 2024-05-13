@@ -26,10 +26,16 @@ window.detectionRunning = false
 window.videoWidth = 0;
 window.videoHeight = 0;
 
-let landmarks = new Array();
+let results = undefined;
 
-window.getLandmarks = function() {
-    return landmarks;
+window.getResults = function() {
+    return results;
+}
+
+let lastVideoTime = -1;
+
+window.getVideoTimes = function() {
+    return lastVideoTime;
 }
 
 const createHandLandmarker = async () => {
@@ -76,8 +82,6 @@ if (hasGetUserMedia()) {
     console.warn("getUserMedia() is not supported by your browser");
 }
 
-let lastVideoTime = -1;
-let results = undefined;
 async function predictWebcam() {
     window.videoWidth = video.videoWidth;
     window.videoHeight = video.videoHeight;
@@ -86,9 +90,7 @@ async function predictWebcam() {
     if (lastVideoTime !== video.currentTime) {
         lastVideoTime = video.currentTime;
         results = handLandmarker.detectForVideo(video, startTimeMs);
-    }
-    if (results.landmarks) {
-        landmarks = results.landmarks;
+        results.videoTime = video.currentTime
     }
 
     if (window.webcamRunning === true) {
