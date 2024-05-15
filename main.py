@@ -237,7 +237,6 @@ class PointDetector:
 
 class MediapipeManager:
     STORE_HAND_TIME = 2
-    SHOW_HAND_TIME = 0.3
 
     def __init__(self, sens: float) -> None:
         self.sens = sens
@@ -309,7 +308,7 @@ class MediapipeManager:
     def draw(self) -> None:
         if self.hand_history:
             hand = self.hand_history[-1]
-            if self.before_video_time - hand.time < self.SHOW_HAND_TIME:
+            if self.before_video_time == hand.time:
                 hand.draw()
 
 
