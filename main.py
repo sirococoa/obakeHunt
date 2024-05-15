@@ -193,6 +193,7 @@ class PointDetector:
 
     def __init__(self) -> None:
         self.pointing_count = 0
+        self.pointing_time = 0
         self.pointing_position = []
 
     def update(self) -> None:
