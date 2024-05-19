@@ -236,10 +236,36 @@ class PointDetector:
             pyxel.circ(self.pointing_position[0], self.pointing_position[1], r, 8)
 
 
+class VideoMarkImage:
+    ASSET_FILE = './assets/video_mark.png'
+    I = 1
+    U = 0
+    V = 135
+    W = 60
+    H = 30
+    MARGIN = 10
+    COLKEY = 15
+    VIDEO_COLOR = 11
+
+    def __init__(self) -> None:
+        self.load()
+
+    def load(self) -> None:
+        pyxel.images[self.I].load(self.U, self.V, self.ASSET_FILE)
+
+    def draw(self, color :int) -> None:
+        x = self.MARGIN
+        y = WINDOW_H - self.MARGIN - self.H
+        pyxel.pal(self.VIDEO_COLOR, color)
+        pyxel.blt(x, y, self.I, self.U, self.V, self.W, self.H, self.COLKEY)
+        pyxel.pal(self.VIDEO_COLOR, self.VIDEO_COLOR)
+
+
 class MediapipeManager:
     STORE_HAND_TIME = 2
 
     def __init__(self, sens: float) -> None:
+        self.video_mark_image = VideoMarkImage()
         self.sens = sens
         self.connect_flag = False
         self.detect_flag = False
@@ -247,6 +273,7 @@ class MediapipeManager:
         self.videoAspect = 1
         self.hand_history: list[Hand] = []
         self.before_video_time = -1
+        self.processing_time = 0
         self.shoot_detector = ShootDetector()
         self.reload_detector = ReloadDetector()
         self.point_detector = PointDetector()
@@ -287,6 +314,8 @@ class MediapipeManager:
         if self.before_video_time == video_time:
             self.update_flag = False
             return
+        if self.before_video_time > 0:
+            self.processing_time = video_time - self.before_video_time
         self.update_flag = True
         self.before_video_time = video_time
         if len(landmarks) == 0:
@@ -311,6 +340,15 @@ class MediapipeManager:
             hand = self.hand_history[-1]
             if self.before_video_time == hand.time:
                 hand.draw()
+        if self.processing_time < 0.1:
+            self.video_mark_image.draw(11)
+        elif self.processing_time < 0.3:
+            self.video_mark_image.draw(10)
+        else:
+            self.video_mark_image.draw(8)
+        x = self.video_mark_image.MARGIN + 10
+        y = WINDOW_H - self.video_mark_image.MARGIN - self.video_mark_image.H // 2
+        pyxel.text(x, y, '{:.3f}'.format(self.processing_time), 7)
 
 
 class ObakeDeadImage:
